@@ -48,7 +48,7 @@ class Report implements \Stringable
 
     public function __toString(): string
     {
-        return sprintf('举报ID:%d - 用户:%s', $this->id ?? 0, $this->reporterUser ?? 'unknown');
+        return sprintf('举报ID:%d - 用户:%s', $this->id ?? 0, $this->reporterUser?->getUserIdentifier() ?? 'unknown');
     }
 
     public function getId(): ?int

@@ -49,7 +49,7 @@ class ViolationRecord implements \Stringable
     {
         return sprintf('违规ID:%d - 用户:%s - 类型:%s', 
             $this->id ?? 0, 
-            $this->user ?? 'unknown', 
+            $this->user?->getUserIdentifier() ?? 'unknown', 
             $this->violationType?->getLabel() ?? '未知'
         );
     }

@@ -3,6 +3,7 @@
 namespace AIContentAuditBundle\Service;
 
 use AIContentAuditBundle\Entity\ViolationRecord;
+use AIContentAuditBundle\Enum\ViolationType;
 use AIContentAuditBundle\Repository\ViolationRecordRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -39,7 +40,7 @@ class UserManagementService
         $violationRecord = new ViolationRecord();
         $violationRecord->setUser($user);
         $violationRecord->setViolationContent($reason);
-        $violationRecord->setViolationType('手动禁用账号');
+        $violationRecord->setViolationType(ViolationType::REPEATED_VIOLATION);
         $violationRecord->setProcessResult('账号已禁用');
         $violationRecord->setProcessedBy($operator);
 
@@ -71,7 +72,7 @@ class UserManagementService
         $violationRecord = new ViolationRecord();
         $violationRecord->setUser($user);
         $violationRecord->setViolationContent('账号解禁: ' . $reason);
-        $violationRecord->setViolationType('账号解禁');
+        $violationRecord->setViolationType(ViolationType::USER_REPORT);
         $violationRecord->setProcessResult('账号已恢复正常');
         $violationRecord->setProcessedBy($operator);
 
@@ -105,7 +106,7 @@ class UserManagementService
         $violationRecord = new ViolationRecord();
         $violationRecord->setUser($user);
         $violationRecord->setViolationContent('用户申诉: ' . $appealContent);
-        $violationRecord->setViolationType('申诉复核');
+        $violationRecord->setViolationType(ViolationType::MANUAL_DELETE);
         $violationRecord->setProcessResult($result);
         $violationRecord->setProcessedBy($operator);
 
