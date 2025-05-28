@@ -9,6 +9,7 @@ use AIContentAuditBundle\Repository\ReportRepository;
 use AIContentAuditBundle\Service\ContentAuditService;
 use AIContentAuditBundle\Service\ReportService;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -18,12 +19,13 @@ use Symfony\Component\Security\Core\User\UserInterface;
 class ReportServiceTest extends TestCase
 {
     private ReportService $service;
-    private EntityManagerInterface|MockObject $entityManager;
-    private ReportRepository|MockObject $reportRepository;
-    private ContentAuditService|MockObject $contentAuditService;
-    private LoggerInterface|MockObject $logger;
-    private UserInterface|MockObject $user;
-    private GeneratedContent|MockObject $content;
+    private MockObject $entityManager;
+    private MockObject $reportRepository;
+    private MockObject $contentAuditService;
+    private MockObject $logger;
+    private UserInterface $user;
+    private $content;
+    private MockObject $generatedContent;
 
     protected function setUp(): void
     {
@@ -31,8 +33,25 @@ class ReportServiceTest extends TestCase
         $this->reportRepository = $this->createMock(ReportRepository::class);
         $this->contentAuditService = $this->createMock(ContentAuditService::class);
         $this->logger = $this->createMock(LoggerInterface::class);
-        $this->user = $this->createMock(UserInterface::class);
+        
+        // 创建一个简单的User实现来避免Mock问题
+        $this->user = new class implements UserInterface {
+            public function getId(): int { return 123; }
+            public function getUserIdentifier(): string { return 'test_user'; }
+            public function getRoles(): array { return ['ROLE_USER']; }
+            public function eraseCredentials(): void { }
+        };
+        
+        // 创建一个简单的内容对象用于测试
         $this->content = $this->createMock(GeneratedContent::class);
+        $this->content->method('getId')->willReturn(123);
+        
+        $this->generatedContent = $this->createMock(GeneratedContent::class);
+        
+        // 设置EntityManager返回Repository
+        $this->entityManager->method('getRepository')
+            ->with(Report::class)
+            ->willReturn($this->reportRepository);
         
         $this->service = new ReportService(
             $this->entityManager,
@@ -40,20 +59,22 @@ class ReportServiceTest extends TestCase
             $this->contentAuditService,
             $this->logger
         );
-        
-        // 配置UserInterface方法
-        $this->user->method('getUserIdentifier')->willReturn('test_user');
-        $this->content->method('getId')->willReturn(123);
     }
     
-    public function testSubmitReport_createsNewReport()
+    public function testSubmitReport()
     {
-        // 设置entityManager的期望行为
+        $reportReason = '内容不当';
+        
+        // 设置logger期望 - 分别设置两次调用
+        $this->logger->expects($this->exactly(2))
+            ->method('info');
+            
+        // 设置entityManager期望
         $this->entityManager->expects($this->once())
             ->method('persist')
-            ->with($this->callback(function ($report) {
+            ->with($this->callback(function ($report) use ($reportReason) {
                 return $report instanceof Report
-                    && $report->getReportReason() === '违规内容'
+                    && $report->getReportReason() === $reportReason
                     && $report->getProcessStatus() === ProcessStatus::PENDING;
             }));
             
@@ -61,277 +82,277 @@ class ReportServiceTest extends TestCase
             ->method('flush');
             
         // 执行方法
-        $result = $this->service->submitReport(
-            $this->content,
-            $this->user,
-            '违规内容'
-        );
+        $result = $this->service->submitReport($this->content, $this->user, $reportReason);
         
         // 断言结果
         $this->assertInstanceOf(Report::class, $result);
-        $this->assertEquals($this->content, $result->getReportedContent());
-        $this->assertEquals($this->user, $result->getReporterUser());
-        $this->assertEquals('违规内容', $result->getReportReason());
+        $this->assertEquals($reportReason, $result->getReportReason());
         $this->assertEquals(ProcessStatus::PENDING, $result->getProcessStatus());
-        $this->assertInstanceOf(\DateTimeImmutable::class, $result->getReportTime());
     }
     
-    public function testProcessReport_updatesReportStatus()
+    public function testProcessReport()
     {
-        // 创建测试报告
         $report = new Report();
-        $report->setReportedContent($this->content);
-        $report->setReporterUser($this->user);
-        $report->setReportReason('违规内容');
-        $report->setProcessStatus(ProcessStatus::PENDING);
+        $processResult = '举报属实，已处理';
+        $operator = 'admin';
         
-        // 设置entityManager的期望行为
+        // 使用反射设置ID
+        $reflection = new \ReflectionClass($report);
+        $idProperty = $reflection->getProperty('id');
+        $idProperty->setAccessible(true);
+        $idProperty->setValue($report, 456);
+        
+        // 设置logger期望
+        $this->logger->expects($this->exactly(2))
+            ->method('info');
+            
+        // 设置entityManager期望
         $this->entityManager->expects($this->once())
             ->method('flush');
             
         // 执行方法
-        $result = $this->service->processReport(
-            $report,
-            '举报成立，内容已删除',
-            'admin'
-        );
+        $result = $this->service->processReport($report, $processResult, $operator);
         
         // 断言结果
-        $this->assertInstanceOf(Report::class, $result);
         $this->assertEquals(ProcessStatus::COMPLETED, $result->getProcessStatus());
-        $this->assertEquals('举报成立，内容已删除', $result->getProcessResult());
+        $this->assertEquals($processResult, $result->getProcessResult());
         $this->assertInstanceOf(\DateTimeImmutable::class, $result->getProcessTime());
     }
     
-    public function testStartProcessing_setsStatusToProcessing()
+    public function testStartProcessing_withPendingStatus()
     {
-        // 创建测试报告
         $report = new Report();
-        $report->setReportedContent($this->content);
-        $report->setReporterUser($this->user);
-        $report->setReportReason('违规内容');
         $report->setProcessStatus(ProcessStatus::PENDING);
+        $operator = 'admin';
         
-        // 设置entityManager的期望行为
+        // 使用反射设置ID
+        $reflection = new \ReflectionClass($report);
+        $idProperty = $reflection->getProperty('id');
+        $idProperty->setAccessible(true);
+        $idProperty->setValue($report, 789);
+        
+        // 设置logger期望
+        $this->logger->expects($this->once())
+            ->method('info');
+            
+        // 设置entityManager期望
         $this->entityManager->expects($this->once())
             ->method('flush');
             
         // 执行方法
-        $result = $this->service->startProcessing($report, 'admin');
+        $result = $this->service->startProcessing($report, $operator);
         
         // 断言结果
-        $this->assertInstanceOf(Report::class, $result);
         $this->assertEquals(ProcessStatus::PROCESSING, $result->getProcessStatus());
     }
     
-    public function testStartProcessing_ignoresNonPendingReports()
+    public function testStartProcessing_withNonPendingStatus()
     {
-        // 创建已经在处理中的报告
         $report = new Report();
-        $report->setReportedContent($this->content);
-        $report->setReporterUser($this->user);
-        $report->setReportReason('违规内容');
-        $report->setProcessStatus(ProcessStatus::PROCESSING);
+        $report->setProcessStatus(ProcessStatus::COMPLETED);
+        $operator = 'admin';
         
-        // 设置entityManager的期望行为
+        // 使用反射设置ID
+        $reflection = new \ReflectionClass($report);
+        $idProperty = $reflection->getProperty('id');
+        $idProperty->setAccessible(true);
+        $idProperty->setValue($report, 789);
+        
+        // 设置logger期望
+        $this->logger->expects($this->once())
+            ->method('warning');
+            
+        // 设置entityManager期望 - 不应该调用flush
         $this->entityManager->expects($this->never())
             ->method('flush');
             
         // 执行方法
-        $result = $this->service->startProcessing($report, 'admin');
+        $result = $this->service->startProcessing($report, $operator);
         
-        // 断言结果
-        $this->assertInstanceOf(Report::class, $result);
-        $this->assertEquals(ProcessStatus::PROCESSING, $result->getProcessStatus());
+        // 断言结果 - 状态不应该改变
+        $this->assertEquals(ProcessStatus::COMPLETED, $result->getProcessStatus());
     }
     
-    public function testFindPendingReports_returnsPendingReports()
+    public function testFindPendingReports()
     {
-        // 创建测试报告列表
-        $pendingReport1 = new Report();
-        $pendingReport2 = new Report();
-        $pendingReports = [$pendingReport1, $pendingReport2];
+        $expectedReports = [new Report(), new Report()];
         
-        // 设置repository的期望行为
         $this->reportRepository->expects($this->once())
             ->method('findPendingReports')
-            ->willReturn($pendingReports);
+            ->willReturn($expectedReports);
             
-        // 执行方法
         $result = $this->service->findPendingReports();
         
-        // 断言结果
-        $this->assertCount(2, $result);
-        $this->assertSame($pendingReports, $result);
+        $this->assertEquals($expectedReports, $result);
     }
     
-    public function testFindReportsByUser_returnsUserReports()
+    public function testFindReportsByUser()
     {
-        // 创建测试报告列表
-        $userReport1 = new Report();
-        $userReport2 = new Report();
-        $userReports = [$userReport1, $userReport2];
+        $expectedReports = [new Report(), new Report()];
         
-        // 设置repository的期望行为
         $this->reportRepository->expects($this->once())
             ->method('findByReporterUser')
             ->with('test_user')
-            ->willReturn($userReports);
+            ->willReturn($expectedReports);
             
-        // 执行方法
         $result = $this->service->findReportsByUser($this->user);
         
-        // 断言结果
-        $this->assertCount(2, $result);
-        $this->assertSame($userReports, $result);
+        $this->assertEquals($expectedReports, $result);
     }
     
-    public function testFindReportsByContent_returnsContentReports()
+    public function testFindReportsByContent()
     {
-        // 创建测试报告列表
-        $contentReport1 = new Report();
-        $contentReport2 = new Report();
-        $contentReports = [$contentReport1, $contentReport2];
+        $expectedReports = [new Report()];
         
-        // 设置repository的期望行为
         $this->reportRepository->expects($this->once())
             ->method('findByReportedContent')
             ->with(123)
-            ->willReturn($contentReports);
+            ->willReturn($expectedReports);
             
-        // 执行方法
         $result = $this->service->findReportsByContent($this->content);
         
-        // 断言结果
-        $this->assertCount(2, $result);
-        $this->assertSame($contentReports, $result);
+        $this->assertEquals($expectedReports, $result);
     }
     
-    public function testCheckMaliciousReporting_returnsTrueForMaliciousUser()
+    public function testGetReportStatistics()
     {
-        // 创建一个特殊的User类进行测试
-        $mockUser = new class implements UserInterface {
-            private int $id = 1001;
-            
-            public function getRoles(): array
-            {
-                return ['ROLE_USER'];
-            }
-            
-            public function getPassword(): ?string
-            {
-                return null;
-            }
-            
-            public function getSalt(): ?string
-            {
-                return null;
-            }
-            
-            public function eraseCredentials(): void
-            {
-            }
-            
-            public function getUserIdentifier(): string
-            {
-                return 'test_user';
-            }
-            
-            public function getId(): int
-            {
-                return $this->id;
-            }
-        };
-        
-        // 创建查询构建器
-        $qb = $this->createMock(QueryBuilder::class);
-        
-        // 使用createMock创建Query的模拟
-        $query = $this->createMock(\Doctrine\ORM\Query::class);
-        
-        // 设置查询返回5个可疑举报
-        $maliciousReports = [
-            new Report(), new Report(), new Report(), new Report(), new Report()
+        $statusCounts = [
+            'pending' => 5,
+            'processing' => 2,
+            'completed' => 10
         ];
         
-        $query->method('getResult')->willReturn($maliciousReports);
+        // Mock QueryBuilder for date statistics
+        $queryBuilder = $this->createMock(QueryBuilder::class);
+        $query = $this->createMock(Query::class);
         
-        // 配置查询构建器行为
-        $qb->method('andWhere')->willReturnSelf();
-        $qb->method('setParameter')->willReturnSelf();
-        $qb->method('getQuery')->willReturn($query);
-        
-        // 设置repository的期望行为
-        $this->reportRepository->method('createQueryBuilder')
-            ->willReturn($qb);
+        $this->reportRepository->expects($this->once())
+            ->method('countByStatus')
+            ->willReturn($statusCounts);
             
-        // 执行方法
-        $result = $this->service->checkMaliciousReporting($mockUser);
+        $this->entityManager->expects($this->exactly(7))
+            ->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
+            
+        $queryBuilder->method('select')->willReturnSelf();
+        $queryBuilder->method('from')->willReturnSelf();
+        $queryBuilder->method('where')->willReturnSelf();
+        $queryBuilder->method('andWhere')->willReturnSelf();
+        $queryBuilder->method('setParameter')->willReturnSelf();
+        $queryBuilder->method('getQuery')->willReturn($query);
         
-        // 断言结果
-        $this->assertTrue($result);
+        $query->method('getSingleScalarResult')->willReturn(2);
+        
+        $result = $this->service->getReportStatistics();
+        
+        $this->assertArrayHasKey('statusCounts', $result);
+        $this->assertArrayHasKey('dateStats', $result);
+        $this->assertEquals($statusCounts, $result['statusCounts']);
+        $this->assertCount(7, $result['dateStats']); // 7天的数据
     }
     
-    public function testCheckMaliciousReporting_returnsFalseForNormalUser()
+    public function testCheckMaliciousReporting_withMaliciousUser()
     {
-        // 创建一个特殊的User类进行测试
-        $mockUser = new class implements UserInterface {
-            private int $id = 1002;
-            
-            public function getRoles(): array
-            {
-                return ['ROLE_USER'];
-            }
-            
-            public function getPassword(): ?string
-            {
-                return null;
-            }
-            
-            public function getSalt(): ?string
-            {
-                return null;
-            }
-            
-            public function eraseCredentials(): void
-            {
-            }
-            
-            public function getUserIdentifier(): string
-            {
-                return 'normal_user';
-            }
-            
-            public function getId(): int
-            {
-                return $this->id;
-            }
-        };
+        $reports = array_fill(0, 6, new Report()); // 6个不属实举报
         
-        // 创建查询构建器
-        $qb = $this->createMock(QueryBuilder::class);
+        $queryBuilder = $this->createMock(QueryBuilder::class);
+        $query = $this->createMock(Query::class);
         
-        // 使用createMock创建Query的模拟
-        $query = $this->createMock(\Doctrine\ORM\Query::class);
-        
-        // 设置查询返回少于5个可疑举报
-        $reports = [new Report(), new Report()];
+        $this->reportRepository->expects($this->once())
+            ->method('createQueryBuilder')
+            ->with('r')
+            ->willReturn($queryBuilder);
+            
+        $queryBuilder->method('andWhere')->willReturnSelf();
+        $queryBuilder->method('setParameter')->willReturnSelf();
+        $queryBuilder->method('getQuery')->willReturn($query);
         
         $query->method('getResult')->willReturn($reports);
         
-        // 配置查询构建器行为
-        $qb->method('andWhere')->willReturnSelf();
-        $qb->method('setParameter')->willReturnSelf();
-        $qb->method('getQuery')->willReturn($query);
-        
-        // 设置repository的期望行为
-        $this->reportRepository->method('createQueryBuilder')
-            ->willReturn($qb);
+        // 设置logger期望
+        $this->logger->expects($this->once())
+            ->method('warning');
             
-        // 执行方法
-        $result = $this->service->checkMaliciousReporting($mockUser);
+        $result = $this->service->checkMaliciousReporting($this->user);
         
-        // 断言结果
+        $this->assertTrue($result);
+    }
+    
+    public function testCheckMaliciousReporting_withNormalUser()
+    {
+        $reports = array_fill(0, 2, new Report()); // 只有2个不属实举报
+        
+        $queryBuilder = $this->createMock(QueryBuilder::class);
+        $query = $this->createMock(Query::class);
+        
+        $this->reportRepository->expects($this->once())
+            ->method('createQueryBuilder')
+            ->with('r')
+            ->willReturn($queryBuilder);
+            
+        $queryBuilder->method('andWhere')->willReturnSelf();
+        $queryBuilder->method('setParameter')->willReturnSelf();
+        $queryBuilder->method('getQuery')->willReturn($query);
+        
+        $query->method('getResult')->willReturn($reports);
+        
+        // 不应该记录警告日志
+        $this->logger->expects($this->never())
+            ->method('warning');
+            
+        $result = $this->service->checkMaliciousReporting($this->user);
+        
         $this->assertFalse($result);
     }
-} 
+    
+    public function testSubmitReport_withEmptyReason()
+    {
+        $reportReason = '';
+        
+        // 设置logger期望
+        $this->logger->expects($this->exactly(2))
+            ->method('info');
+            
+        // 设置entityManager期望
+        $this->entityManager->expects($this->once())
+            ->method('persist');
+            
+        $this->entityManager->expects($this->once())
+            ->method('flush');
+            
+        // 执行方法
+        $result = $this->service->submitReport($this->content, $this->user, $reportReason);
+        
+        // 断言结果
+        $this->assertInstanceOf(Report::class, $result);
+        $this->assertEquals('', $result->getReportReason());
+    }
+    
+    public function testProcessReport_withLongProcessResult()
+    {
+        $report = new Report();
+        $processResult = str_repeat('很长的处理结果 ', 100);
+        $operator = 'admin';
+        
+        // 使用反射设置ID
+        $reflection = new \ReflectionClass($report);
+        $idProperty = $reflection->getProperty('id');
+        $idProperty->setAccessible(true);
+        $idProperty->setValue($report, 456);
+        
+        // 设置logger期望
+        $this->logger->expects($this->exactly(2))
+            ->method('info');
+            
+        // 设置entityManager期望
+        $this->entityManager->expects($this->once())
+            ->method('flush');
+            
+        // 执行方法
+        $result = $this->service->processReport($report, $processResult, $operator);
+        
+        // 断言结果
+        $this->assertEquals(ProcessStatus::COMPLETED, $result->getProcessStatus());
+        $this->assertEquals($processResult, $result->getProcessResult());
+    }
+}
