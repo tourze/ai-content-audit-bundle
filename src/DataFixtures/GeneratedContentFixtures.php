@@ -196,7 +196,7 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
                     $outputText = mb_substr($outputText, 0, $position) .
                         $keyword->getKeyword() .
                         mb_substr($outputText, $position);
-                } catch  (\Throwable $e) {
+                } catch (\Throwable $e) {
                     // 如果获取引用失败，不插入关键词
                 }
             }
