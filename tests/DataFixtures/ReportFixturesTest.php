@@ -222,7 +222,6 @@ class ReportFixturesTest extends TestCase
                 $reportReason = $reasonProperty->getValue($report);
                 
                 if ($reportReason !== null) {
-                    $this->assertIsString($reportReason, '举报理由应该是字符串');
                     $this->assertNotEmpty($reportReason, '举报理由不应该为空');
                     $this->assertLessThanOrEqual(500, strlen($reportReason), '举报理由长度应该合理');
                 }

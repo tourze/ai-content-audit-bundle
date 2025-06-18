@@ -28,7 +28,8 @@
     "symfony/security-http": "^6.4",
     "symfony/yaml": "^6.4 || ^7.1",
     "tourze/biz-user-bundle": "0.0.*",
-    "tourze/easy-admin-menu-bundle": "0.1.*"
+    "tourze/easy-admin-menu-bundle": "0.1.*",
+    "tourze/enum-extra": "0.1.*"
   },
   "require-dev": {
     "deptrac/deptrac": "^3.0",

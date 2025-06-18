@@ -2,11 +2,19 @@
 
 namespace AIContentAuditBundle\Enum;
 
+use Tourze\EnumExtra\Itemable;
+use Tourze\EnumExtra\ItemTrait;
+use Tourze\EnumExtra\Labelable;
+use Tourze\EnumExtra\Selectable;
+use Tourze\EnumExtra\SelectTrait;
+
 /**
  * 处理状态枚举
  */
-enum ProcessStatus: string
+enum ProcessStatus: string implements Itemable, Labelable, Selectable
 {
+    use ItemTrait;
+    use SelectTrait;
     case PENDING = '待审核';
     case PROCESSING = '审核中';
     case COMPLETED = '已处理';

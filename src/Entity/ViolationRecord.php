@@ -14,7 +14,7 @@ class ViolationRecord implements \Stringable
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column]
+    #[ORM\Column(options: ['comment' => '主键ID'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne]
@@ -47,9 +47,9 @@ class ViolationRecord implements \Stringable
 
     public function __toString(): string
     {
-        return sprintf('违规ID:%d - 用户:%s - 类型:%s', 
-            $this->id ?? 0, 
-            $this->user?->getUserIdentifier() ?? 'unknown', 
+        return sprintf('违规ID:%d - 用户:%s - 类型:%s',
+            $this->id ?? 0,
+            $this->user?->getUserIdentifier() ?? 'unknown',
             $this->violationType?->getLabel() ?? '未知'
         );
     }
@@ -142,4 +142,4 @@ class ViolationRecord implements \Stringable
 
         return $this;
     }
-} 
+}

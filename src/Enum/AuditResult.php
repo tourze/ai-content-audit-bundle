@@ -2,11 +2,19 @@
 
 namespace AIContentAuditBundle\Enum;
 
+use Tourze\EnumExtra\Itemable;
+use Tourze\EnumExtra\ItemTrait;
+use Tourze\EnumExtra\Labelable;
+use Tourze\EnumExtra\Selectable;
+use Tourze\EnumExtra\SelectTrait;
+
 /**
  * 审核结果枚举
  */
-enum AuditResult: string
+enum AuditResult: string implements Itemable, Labelable, Selectable
 {
+    use ItemTrait;
+    use SelectTrait;
     case PASS = '通过';
     case MODIFY = '修改';
     case DELETE = '删除';

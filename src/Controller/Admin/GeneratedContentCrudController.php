@@ -23,17 +23,16 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[IsGranted('ROLE_ADMIN')]
 class GeneratedContentCrudController extends AbstractCrudController
 {
     public function __construct(
-        private readonly ContentAuditService $contentAuditService,
-        private readonly EntityManagerInterface $entityManager,
-    )
-    {
+        private ContentAuditService $contentAuditService,
+        private EntityManagerInterface $entityManager
+    ) {
     }
 
     public static function getEntityFqcn(): string
@@ -118,10 +117,10 @@ class GeneratedContentCrudController extends AbstractCrudController
 
     public function audit(EntityManagerInterface $entityManager, int $id): Response
     {
-        $content = $entityManager->getRepository(GeneratedContent::class)->find($id);
+        $content = $this->entityManager->getRepository(GeneratedContent::class)->find($id);
 
-        if (!$content) {
-            throw $this->createNotFoundException('内容不存在');
+        if ($content === null) {
+            throw new NotFoundHttpException('内容不存在');
         }
 
         // 构建表单视图，显示内容详情并提供审核操作选项
@@ -136,29 +135,32 @@ class GeneratedContentCrudController extends AbstractCrudController
     }
 
     /**
-     * 提交审核结果
+     * 提交内容审核
      */
-    #[Route('/admin/generated-content/{id}/submit-audit', name: 'admin_submit_content_audit', methods: ['POST'])]
-    public function submitAudit(Request $request, int $id): Response
+    public function submitAudit(Request $request, int $contentId): Response
     {
-        $content = $this->entityManager->getRepository(GeneratedContent::class)->find($id);
+        $content = $this->entityManager->getRepository(GeneratedContent::class)->find($contentId);
 
-        if (!$content) {
-            throw $this->createNotFoundException('内容不存在');
+        if ($content === null) {
+            throw new NotFoundHttpException('内容不存在');
         }
 
-        $auditResultValue = $request->request->get('auditResult');
+        // 获取审核结果
+        $auditResultValue = $request->get('auditResult');
+        if ($auditResultValue === null) {
+            throw new \InvalidArgumentException('审核结果不能为空');
+        }
+
         $auditResult = AuditResult::from($auditResultValue);
-        $operator = $this->getUser()->getUserIdentifier();
+        $operator = $this->getUser()?->getUserIdentifier() ?? 'system';
 
         // 执行人工审核
         $this->contentAuditService->manualAudit($content, $auditResult, $operator);
 
-        $this->addFlash('success', '审核结果已提交');
-
+        // 重定向到列表页面
         return $this->redirectToRoute('admin', [
             'crudAction' => 'index',
-            'crudControllerFqcn' => PendingContentCrudController::class,
+            'crudControllerFqcn' => self::class,
         ]);
     }
 

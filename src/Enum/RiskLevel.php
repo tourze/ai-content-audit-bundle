@@ -2,11 +2,19 @@
 
 namespace AIContentAuditBundle\Enum;
 
+use Tourze\EnumExtra\Itemable;
+use Tourze\EnumExtra\ItemTrait;
+use Tourze\EnumExtra\Labelable;
+use Tourze\EnumExtra\Selectable;
+use Tourze\EnumExtra\SelectTrait;
+
 /**
  * 风险等级枚举
  */
-enum RiskLevel: string
+enum RiskLevel: string implements Itemable, Labelable, Selectable
 {
+    use ItemTrait;
+    use SelectTrait;
     case NO_RISK = '无风险';
     case LOW_RISK = '低风险';
     case MEDIUM_RISK = '中风险';

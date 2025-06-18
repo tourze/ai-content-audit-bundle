@@ -17,7 +17,7 @@ class GeneratedContent implements \Stringable
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column]
+    #[ORM\Column(options: ['comment' => '主键ID'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne]
@@ -182,4 +182,4 @@ class GeneratedContent implements \Stringable
     {
         return $this->machineAuditResult === RiskLevel::MEDIUM_RISK && $this->manualAuditResult === null;
     }
-} 
+}

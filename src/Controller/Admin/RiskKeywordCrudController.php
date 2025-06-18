@@ -22,9 +22,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ADMIN')]
 class RiskKeywordCrudController extends AbstractCrudController
 {
-    public function __construct(
-        private EntityManagerInterface $entityManager
-    ) {
+    public function __construct()
+    {
     }
 
     public static function getEntityFqcn(): string
@@ -98,8 +97,9 @@ class RiskKeywordCrudController extends AbstractCrudController
         $keyword->setUpdateTime(new \DateTimeImmutable());
         
         // 设置当前登录用户为添加人
-        if ($this->getUser()) {
-            $keyword->setAddedBy($this->getUser()->getUserIdentifier());
+        $user = $this->getUser();
+        if ($user !== null) {
+            $keyword->setAddedBy($user->getUserIdentifier());
         }
         
         return $keyword;

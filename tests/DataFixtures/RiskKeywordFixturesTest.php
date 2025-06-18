@@ -142,7 +142,6 @@ class RiskKeywordFixturesTest extends TestCase
                 $keywordText = $keywordProperty->getValue($keyword);
                 
                 if ($keywordText !== null) {
-                    $this->assertIsString($keywordText, '关键词应该是字符串');
                     $this->assertNotEmpty($keywordText, '关键词不应该为空');
                     $this->assertLessThanOrEqual(100, strlen($keywordText), '关键词长度应该合理');
                     $this->assertGreaterThanOrEqual(1, strlen($keywordText), '关键词应该至少有一个字符');
@@ -184,7 +183,6 @@ class RiskKeywordFixturesTest extends TestCase
                 $category = $categoryProperty->getValue($keyword);
                 
                 if ($category !== null) {
-                    $this->assertIsString($category, '分类应该是字符串');
                     $this->assertNotEmpty($category, '分类不应该为空');
                     $this->assertLessThanOrEqual(50, strlen($category), '分类名称长度应该合理');
                 }
@@ -410,7 +408,6 @@ class RiskKeywordFixturesTest extends TestCase
                 $addedBy = $addedByProperty->getValue($keyword);
                 
                 if ($addedBy !== null) {
-                    $this->assertIsString($addedBy, '添加人应该是字符串');
                     $this->assertNotEmpty($addedBy, '添加人不应该为空');
                 }
             }

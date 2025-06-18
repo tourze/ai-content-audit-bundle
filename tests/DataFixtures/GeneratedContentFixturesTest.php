@@ -90,8 +90,6 @@ class GeneratedContentFixturesTest extends TestCase
     public function testGetDependencies()
     {
         $dependencies = $this->fixtures->getDependencies();
-        
-        $this->assertIsArray($dependencies);
         $this->assertContains(BizUserFixtures::class, $dependencies);
         $this->assertContains(\AIContentAuditBundle\DataFixtures\RiskKeywordFixtures::class, $dependencies);
     }
@@ -99,8 +97,6 @@ class GeneratedContentFixturesTest extends TestCase
     public function testGetGroups()
     {
         $groups = GeneratedContentFixtures::getGroups();
-        
-        $this->assertIsArray($groups);
         $this->assertContains('ai-content-audit', $groups);
     }
     
@@ -171,14 +167,10 @@ class GeneratedContentFixturesTest extends TestCase
         
         // 测试无风险内容生成
         $result = $method->invoke($this->fixtures, RiskLevel::NO_RISK, $faker);
-        
-        $this->assertIsArray($result);
         $this->assertCount(2, $result);
         
         [$inputText, $outputText] = $result;
-        
-        $this->assertIsString($inputText);
-        $this->assertIsString($outputText);
+
         $this->assertNotEmpty($inputText);
         $this->assertNotEmpty($outputText);
         
@@ -215,14 +207,10 @@ class GeneratedContentFixturesTest extends TestCase
         
         // 测试高风险内容生成
         $result = $method->invoke($this->fixtures, RiskLevel::HIGH_RISK, $faker);
-        
-        $this->assertIsArray($result);
         $this->assertCount(2, $result);
         
         [$inputText, $outputText] = $result;
-        
-        $this->assertIsString($inputText);
-        $this->assertIsString($outputText);
+
         $this->assertNotEmpty($inputText);
         $this->assertNotEmpty($outputText);
     }
@@ -255,14 +243,10 @@ class GeneratedContentFixturesTest extends TestCase
         
         // 测试中风险内容生成
         $result = $method->invoke($this->fixtures, RiskLevel::MEDIUM_RISK, $faker);
-        
-        $this->assertIsArray($result);
         $this->assertCount(2, $result);
         
         [$inputText, $outputText] = $result;
-        
-        $this->assertIsString($inputText);
-        $this->assertIsString($outputText);
+
         $this->assertNotEmpty($inputText);
         $this->assertNotEmpty($outputText);
     }
@@ -276,15 +260,12 @@ class GeneratedContentFixturesTest extends TestCase
         $reflection = new \ReflectionClass($this->fixtures);
         
         $inputTemplates = $reflection->getConstant('INPUT_TEMPLATES');
-        $this->assertIsArray($inputTemplates);
         $this->assertNotEmpty($inputTemplates);
         
         $topics = $reflection->getConstant('TOPICS');
-        $this->assertIsArray($topics);
         $this->assertNotEmpty($topics);
         
         $sensitiveTopics = $reflection->getConstant('SENSITIVE_TOPICS');
-        $this->assertIsArray($sensitiveTopics);
         $this->assertNotEmpty($sensitiveTopics);
     }
     

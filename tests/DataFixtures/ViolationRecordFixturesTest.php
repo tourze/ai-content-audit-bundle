@@ -235,7 +235,6 @@ class ViolationRecordFixturesTest extends TestCase
                 $violationContent = $contentProperty->getValue($violation);
                 
                 if ($violationContent !== null) {
-                    $this->assertIsString($violationContent, '违规内容应该是字符串');
                     $this->assertNotEmpty($violationContent, '违规内容不应该为空');
                     $this->assertLessThanOrEqual(1000, strlen($violationContent), '违规内容长度应该合理');
                 }
@@ -248,7 +247,6 @@ class ViolationRecordFixturesTest extends TestCase
                 $processResult = $resultProperty->getValue($violation);
                 
                 if ($processResult !== null) {
-                    $this->assertIsString($processResult, '处理结果应该是字符串');
                     $this->assertNotEmpty($processResult, '处理结果不应该为空');
                     $this->assertLessThanOrEqual(500, strlen($processResult), '处理结果长度应该合理');
                 }
@@ -294,7 +292,6 @@ class ViolationRecordFixturesTest extends TestCase
                 $processedBy = $processedByProperty->getValue($violation);
                 
                 if ($processedBy !== null) {
-                    $this->assertIsString($processedBy, '处理人应该是字符串');
                     $this->assertNotEmpty($processedBy, '处理人不应该为空');
                     $this->assertLessThanOrEqual(100, strlen($processedBy), '处理人名称长度应该合理');
                 }

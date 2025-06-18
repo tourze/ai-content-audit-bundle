@@ -2,11 +2,19 @@
 
 namespace AIContentAuditBundle\Enum;
 
+use Tourze\EnumExtra\Itemable;
+use Tourze\EnumExtra\ItemTrait;
+use Tourze\EnumExtra\Labelable;
+use Tourze\EnumExtra\Selectable;
+use Tourze\EnumExtra\SelectTrait;
+
 /**
  * 违规类型枚举
  */
-enum ViolationType: string
+enum ViolationType: string implements Itemable, Labelable, Selectable
 {
+    use ItemTrait;
+    use SelectTrait;
     case MACHINE_HIGH_RISK = '机器识别高风险内容';
     case MANUAL_DELETE = '人工审核删除';
     case USER_REPORT = '用户举报';

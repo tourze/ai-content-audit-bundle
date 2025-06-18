@@ -14,7 +14,7 @@ class RiskKeyword implements \Stringable
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column]
+    #[ORM\Column(options: ['comment' => '主键ID'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 100, options: ['comment' => '风险关键词'])]
