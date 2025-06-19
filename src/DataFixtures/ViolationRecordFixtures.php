@@ -7,12 +7,12 @@ namespace AIContentAuditBundle\DataFixtures;
 use AIContentAuditBundle\Entity\ViolationRecord;
 use AIContentAuditBundle\Enum\ViolationType;
 use BizUserBundle\DataFixtures\BizUserFixtures;
-use BizUserBundle\Entity\BizUser;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Faker\Factory;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * 违规记录数据填充
@@ -79,7 +79,7 @@ class ViolationRecordFixtures extends Fixture implements DependentFixtureInterfa
                 // 违规重复用户（选择1-5号用户）
                 $userRef = BizUserFixtures::NORMAL_USER_REFERENCE_PREFIX . mt_rand(1, 5);
             }
-            $user = $this->getReference($userRef, BizUser::class);
+            $user = $this->getReference($userRef, UserInterface::class);
 
             // 创建违规记录
             $violationRecord = new ViolationRecord();

@@ -9,12 +9,12 @@ use AIContentAuditBundle\Entity\RiskKeyword;
 use AIContentAuditBundle\Enum\AuditResult;
 use AIContentAuditBundle\Enum\RiskLevel;
 use BizUserBundle\DataFixtures\BizUserFixtures;
-use BizUserBundle\Entity\BizUser;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Faker\Factory;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * 生成内容数据填充
@@ -68,7 +68,7 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
         for ($i = 1; $i <= 100; $i++) {
             // 随机选择用户（用户ID范围1-20）
             $userRef = BizUserFixtures::NORMAL_USER_REFERENCE_PREFIX . mt_rand(1, 20);
-            $user = $this->getReference($userRef, BizUser::class);
+            $user = $this->getReference($userRef, UserInterface::class);
 
             // 决定风险等级
             $riskLevel = $this->getRandomRiskLevel($i);

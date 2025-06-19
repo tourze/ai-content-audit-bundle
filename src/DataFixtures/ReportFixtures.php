@@ -8,12 +8,12 @@ use AIContentAuditBundle\Entity\GeneratedContent;
 use AIContentAuditBundle\Entity\Report;
 use AIContentAuditBundle\Enum\ProcessStatus;
 use BizUserBundle\DataFixtures\BizUserFixtures;
-use BizUserBundle\Entity\BizUser;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Faker\Factory;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * 举报数据填充
@@ -67,7 +67,7 @@ class ReportFixtures extends Fixture implements DependentFixtureInterface, Fixtu
         for ($i = 1; $i <= 50; $i++) {
             // 随机选择举报用户（1-20号普通用户）
             $reporterUserRef = BizUserFixtures::NORMAL_USER_REFERENCE_PREFIX . mt_rand(1, 20);
-            $reporterUser = $this->getReference($reporterUserRef, BizUser::class);
+            $reporterUser = $this->getReference($reporterUserRef, UserInterface::class);
 
             // 随机选择被举报内容（1-100号生成内容）
             $contentRef = GeneratedContentFixtures::CONTENT_REFERENCE_PREFIX . mt_rand(1, 100);
