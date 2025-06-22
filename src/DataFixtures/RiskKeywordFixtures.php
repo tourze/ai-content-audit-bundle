@@ -129,7 +129,8 @@ class RiskKeywordFixtures extends Fixture implements FixtureGroupInterface
         $prefix = match ($riskLevel) {
             RiskLevel::HIGH_RISK => ['严重', '危险', '极端', '非法', '恶意'],
             RiskLevel::MEDIUM_RISK => ['不当', '敏感', '争议', '问题', '可疑'],
-            RiskLevel::LOW_RISK => ['轻微', '边缘', '潜在', '可能', '疑似']
+            RiskLevel::LOW_RISK => ['轻微', '边缘', '潜在', '可能', '疑似'],
+            RiskLevel::NO_RISK => ['安全', '正常', '合规', '标准', '常规']
         };
 
         $suffix = ['内容', '言论', '表述', '信息', '描述', '行为', '操作', '活动'];
@@ -153,7 +154,8 @@ class RiskKeywordFixtures extends Fixture implements FixtureGroupInterface
         $riskDescription = match ($riskLevel) {
             RiskLevel::HIGH_RISK => '高风险关键词，需要立即处理。',
             RiskLevel::MEDIUM_RISK => '中等风险关键词，需要人工审核。',
-            RiskLevel::LOW_RISK => '低风险关键词，可能需要关注。'
+            RiskLevel::LOW_RISK => '低风险关键词，可能需要关注。',
+            RiskLevel::NO_RISK => '无风险关键词，安全内容。'
         };
 
         return "关键词「{$keyword}」是{$riskDescription}可能涉及不适当内容，需要按照内容审核指南进行评估。";

@@ -14,7 +14,6 @@ use PHPUnit\Framework\TestCase;
 
 class ReportRepositoryTest extends TestCase
 {
-    private ReportRepository $repository;
     private MockObject $entityManager;
     private MockObject $queryBuilder;
     private MockObject $query;
@@ -31,8 +30,6 @@ class ReportRepositoryTest extends TestCase
         $this->managerRegistry->method('getManagerForClass')
             ->willReturn($this->entityManager);
             
-        $this->repository = new ReportRepository($this->managerRegistry);
-        
         // 设置QueryBuilder的默认行为
         $this->queryBuilder->method('andWhere')->willReturnSelf();
         $this->queryBuilder->method('setParameter')->willReturnSelf();

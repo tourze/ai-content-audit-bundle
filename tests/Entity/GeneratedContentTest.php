@@ -12,12 +12,10 @@ use Symfony\Component\Security\Core\User\UserInterface;
 class GeneratedContentTest extends TestCase
 {
     private GeneratedContent $generatedContent;
-    private \DateTimeImmutable $now;
 
     protected function setUp(): void
     {
         $this->generatedContent = new GeneratedContent();
-        $this->now = new \DateTimeImmutable();
     }
 
     /**
@@ -87,8 +85,9 @@ class GeneratedContentTest extends TestCase
     
     public function testMachineAuditTimeAccessors(): void
     {
-        $this->generatedContent->setMachineAuditTime($this->now);
-        $this->assertEquals($this->now, $this->generatedContent->getMachineAuditTime());
+        $now = new \DateTimeImmutable();
+        $this->generatedContent->setMachineAuditTime($now);
+        $this->assertEquals($now, $this->generatedContent->getMachineAuditTime());
     }
     
     /**

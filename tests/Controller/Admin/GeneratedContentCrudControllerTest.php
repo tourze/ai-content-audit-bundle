@@ -8,43 +8,26 @@ use AIContentAuditBundle\Enum\AuditResult;
 use AIContentAuditBundle\Enum\RiskLevel;
 use AIContentAuditBundle\Repository\GeneratedContentRepository;
 use AIContentAuditBundle\Service\ContentAuditService;
-use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Security\Core\User\UserInterface;
-use Twig\Environment;
 
 class GeneratedContentCrudControllerTest extends TestCase
 {
     private GeneratedContentCrudController $controller;
-    private MockObject $contentAuditService;
-    private MockObject $entityManager;
-    private MockObject $repository;
-    private MockObject $urlGenerator;
-    private MockObject $twig;
-    private MockObject $user;
+    private ContentAuditService&MockObject $contentAuditService;
+    private GeneratedContentRepository&MockObject $repository;
 
     protected function setUp(): void
     {
         $this->contentAuditService = $this->createMock(ContentAuditService::class);
-        $this->entityManager = $this->createMock(EntityManagerInterface::class);
         $this->repository = $this->createMock(GeneratedContentRepository::class);
-        $this->urlGenerator = $this->createMock(UrlGeneratorInterface::class);
-        $this->twig = $this->createMock(Environment::class);
-        $this->user = $this->createMock(UserInterface::class);
         
         $this->controller = new GeneratedContentCrudController(
             $this->contentAuditService,
-            $this->entityManager
+            $this->repository
         );
-        
-        // 设置EntityManager返回Repository
-        $this->entityManager->method('getRepository')
-            ->with(GeneratedContent::class)
-            ->willReturn($this->repository);
     }
     
     public function testGetEntityFqcn()
@@ -56,14 +39,14 @@ class GeneratedContentCrudControllerTest extends TestCase
     
     public function testAudit_withValidContent()
     {
-        // 由于涉及复杂的EasyAdmin环境设置，这里主要测试方法存在性
-        $this->assertTrue(method_exists($this->controller, 'audit'));
+        // 由于涉及复杂的EasyAdmin环境设置，这里主要测试控制器实例
         $this->assertInstanceOf(GeneratedContentCrudController::class, $this->controller);
     }
     
     public function testAudit_withNonExistentContent()
     {
         $contentId = 999;
+        $entityManager = $this->createMock(\Doctrine\ORM\EntityManagerInterface::class);
         
         // Mock repository返回null
         $this->repository->expects($this->once())
@@ -74,13 +57,12 @@ class GeneratedContentCrudControllerTest extends TestCase
         $this->expectException(NotFoundHttpException::class);
         $this->expectExceptionMessage('内容不存在');
         
-        $this->controller->audit($this->entityManager, $contentId);
+        $this->controller->audit($entityManager, $contentId);
     }
     
     public function testSubmitAudit_withValidContent()
     {
-        // 由于涉及复杂的EasyAdmin环境设置，这里主要测试方法存在性
-        $this->assertTrue(method_exists($this->controller, 'submitAudit'));
+        // 由于涉及复杂的EasyAdmin环境设置，这里主要测试控制器实例
         $this->assertInstanceOf(GeneratedContentCrudController::class, $this->controller);
     }
     
@@ -143,9 +125,6 @@ class GeneratedContentCrudControllerTest extends TestCase
     
     public function testConfigureCrud()
     {
-        // 由于Crud配置类的复杂性，我们主要测试方法是否存在且可调用
-        $this->assertTrue(method_exists($this->controller, 'configureCrud'));
-        
         // 测试方法是否可以被调用而不抛出异常
         $crudMock = $this->createMock(\EasyCorp\Bundle\EasyAdminBundle\Config\Crud::class);
         $crudMock->method('setEntityLabelInSingular')->willReturnSelf();
@@ -161,18 +140,13 @@ class GeneratedContentCrudControllerTest extends TestCase
     
     public function testConfigureFilters()
     {
-        // 测试方法存在性
-        $this->assertTrue(method_exists($this->controller, 'configureFilters'));
+        // 测试filters配置的调用，但由于复杂的EasyAdmin环境，我们仅测试控制器的继承关系
+        $this->assertInstanceOf(\EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController::class, $this->controller);
     }
     
     public function testConfigureFields()
     {
-        // 测试方法是否存在且可调用
-        $this->assertTrue(method_exists($this->controller, 'configureFields'));
-        
         $result = $this->controller->configureFields('index');
-        
-        $this->assertIsIterable($result);
         
         // 将迭代器转换为数组以便测试
         $fields = iterator_to_array($result);
@@ -181,27 +155,8 @@ class GeneratedContentCrudControllerTest extends TestCase
     
     public function testConfigureActions()
     {
-        // 测试方法存在性
-        $this->assertTrue(method_exists($this->controller, 'configureActions'));
+        // 测试actions配置的调用，但由于复杂的EasyAdmin环境，我们仅测试控制器的继承关系
+        $this->assertInstanceOf(\EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController::class, $this->controller);
     }
     
-    /**
-     * 创建测试用的GeneratedContent实例
-     */
-    private function createGeneratedContent(int $id): GeneratedContent
-    {
-        $content = new GeneratedContent();
-        $content->setInputText('Test input');
-        $content->setOutputText('Test output');
-        $content->setMachineAuditResult(RiskLevel::MEDIUM_RISK);
-        $content->setMachineAuditTime(new \DateTimeImmutable());
-        
-        // 使用反射设置ID
-        $reflection = new \ReflectionClass($content);
-        $idProperty = $reflection->getProperty('id');
-        $idProperty->setAccessible(true);
-        $idProperty->setValue($content, $id);
-        
-        return $content;
-    }
 } 

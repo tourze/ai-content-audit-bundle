@@ -11,10 +11,10 @@ use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 class ViolationRecordRepositoryTest extends TestCase
 {
-    private ViolationRecordRepository $repository;
     private MockObject $entityManager;
     private MockObject $queryBuilder;
     private MockObject $query;
@@ -30,8 +30,6 @@ class ViolationRecordRepositoryTest extends TestCase
         $this->managerRegistry->method('getManagerForClass')
             ->willReturn($this->entityManager);
             
-        $this->repository = new ViolationRecordRepository($this->managerRegistry);
-        
         $this->queryBuilder->method('andWhere')->willReturnSelf();
         $this->queryBuilder->method('setParameter')->willReturnSelf();
         $this->queryBuilder->method('orderBy')->willReturnSelf();
@@ -42,7 +40,7 @@ class ViolationRecordRepositoryTest extends TestCase
     
     public function testFindByUser()
     {
-        $userId = 123;
+        $user = $this->createMock(UserInterface::class);
         $expectedRecords = [
             $this->createViolationRecord(1, ViolationType::USER_REPORT),
             $this->createViolationRecord(2, ViolationType::MANUAL_DELETE)
@@ -62,7 +60,7 @@ class ViolationRecordRepositoryTest extends TestCase
             ->method('getResult')
             ->willReturn($expectedRecords);
             
-        $result = $repositoryMock->findByUser($userId);
+        $result = $repositoryMock->findByUser($user);
         
         $this->assertEquals($expectedRecords, $result);
         $this->assertCount(2, $result);

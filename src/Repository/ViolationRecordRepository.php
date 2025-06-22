@@ -6,6 +6,7 @@ use AIContentAuditBundle\Entity\ViolationRecord;
 use AIContentAuditBundle\Enum\ViolationType;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * 违规记录仓库类
@@ -25,14 +26,14 @@ class ViolationRecordRepository extends ServiceEntityRepository
     /**
      * 查找特定用户的违规记录
      *
-     * @param int|string $userId 用户ID
+     * @param UserInterface $user 用户对象
      * @return ViolationRecord[] 返回违规记录列表
      */
-    public function findByUser(int|string $userId): array
+    public function findByUser(UserInterface $user): array
     {
         return $this->createQueryBuilder('v')
-            ->andWhere('v.user = :userId')
-            ->setParameter('userId', $userId)
+            ->andWhere('v.user = :user')
+            ->setParameter('user', $user)
             ->orderBy('v.violationTime', 'DESC')
             ->getQuery()
             ->getResult();
@@ -117,15 +118,15 @@ class ViolationRecordRepository extends ServiceEntityRepository
     /**
      * 统计指定用户的违规次数
      *
-     * @param int|string $userId 用户ID
+     * @param UserInterface $user 用户对象
      * @return int 返回违规次数
      */
-    public function countByUser(int|string $userId): int
+    public function countByUser(UserInterface $user): int
     {
         return (int) $this->createQueryBuilder('v')
             ->select('COUNT(v.id)')
-            ->andWhere('v.user = :userId')
-            ->setParameter('userId', $userId)
+            ->andWhere('v.user = :user')
+            ->setParameter('user', $user)
             ->getQuery()
             ->getSingleScalarResult();
     }

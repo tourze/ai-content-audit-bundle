@@ -10,12 +10,10 @@ use Symfony\Component\Security\Core\User\UserInterface;
 class ViolationRecordTest extends TestCase
 {
     private ViolationRecord $violationRecord;
-    private \DateTimeImmutable $now;
 
     protected function setUp(): void
     {
         $this->violationRecord = new ViolationRecord();
-        $this->now = new \DateTimeImmutable();
     }
 
     /**
@@ -168,8 +166,8 @@ class ViolationRecordTest extends TestCase
         $idProperty->setValue($violationRecord, 123);
         
         // 只测试字符串转换方法被调用不会报错
-        $this->assertIsString((string)$violationRecord);
-        $this->assertStringContainsString('123', (string)$violationRecord);
-        $this->assertStringContainsString('人工审核删除', (string)$violationRecord);
+        $stringResult = (string)$violationRecord;
+        $this->assertStringContainsString('123', $stringResult);
+        $this->assertStringContainsString('人工审核删除', $stringResult);
     }
 } 

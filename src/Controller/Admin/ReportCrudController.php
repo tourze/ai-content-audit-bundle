@@ -4,8 +4,8 @@ namespace AIContentAuditBundle\Controller\Admin;
 
 use AIContentAuditBundle\Entity\Report;
 use AIContentAuditBundle\Enum\ProcessStatus;
+use AIContentAuditBundle\Repository\ReportRepository;
 use AIContentAuditBundle\Service\ReportService;
-use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -32,7 +32,7 @@ class ReportCrudController extends AbstractCrudController
 {
     public function __construct(
         private readonly ReportService $reportService,
-        private readonly EntityManagerInterface $entityManager,
+        private readonly ReportRepository $reportRepository,
         private readonly AdminUrlGenerator $adminUrlGenerator,
     )
     {
@@ -116,7 +116,7 @@ class ReportCrudController extends AbstractCrudController
     public function processReport(AdminContext $context): Response
     {
         $id = $context->getRequest()->query->get('entityId');
-        $report = $this->entityManager->getRepository(Report::class)->find($id);
+        $report = $this->reportRepository->find($id);
 
         if ($report === null) {
             throw $this->createNotFoundException('举报不存在');

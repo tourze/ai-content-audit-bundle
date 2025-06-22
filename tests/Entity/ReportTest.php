@@ -11,12 +11,10 @@ use Symfony\Component\Security\Core\User\UserInterface;
 class ReportTest extends TestCase
 {
     private Report $report;
-    private \DateTimeImmutable $now;
 
     protected function setUp(): void
     {
         $this->report = new Report();
-        $this->now = new \DateTimeImmutable();
     }
 
     /**
@@ -161,8 +159,8 @@ class ReportTest extends TestCase
         $idProperty->setValue($report, 123);
         
         // 只测试字符串转换方法被调用不会报错
-        $this->assertIsString((string)$report);
-        $this->assertStringContainsString('123', (string)$report);
+        $result = (string)$report;
+        $this->assertStringContainsString('123', $result);
     }
     
     public function testIsProcessed(): void

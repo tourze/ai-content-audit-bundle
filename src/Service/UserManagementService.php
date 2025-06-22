@@ -31,7 +31,7 @@ class UserManagementService
     public function disableUser(UserInterface $user, string $reason, string $operator): void
     {
         $this->logger->warning('禁用用户账号', [
-            'userId' => $user->getId(),
+            'userId' => $user->getUserIdentifier(),
             'reason' => $reason,
             'operator' => $operator
         ]);
@@ -63,7 +63,7 @@ class UserManagementService
     public function enableUser(UserInterface $user, string $reason, string $operator): void
     {
         $this->logger->info('解除用户账号禁用', [
-            'userId' => $user->getId(),
+            'userId' => $user->getUserIdentifier(),
             'reason' => $reason,
             'operator' => $operator
         ]);
@@ -80,7 +80,7 @@ class UserManagementService
         $this->entityManager->flush();
 
         $this->logger->info('用户账号已解禁', [
-            'userId' => $user->getId(),
+            'userId' => $user->getUserIdentifier(),
             'violationId' => $violationRecord->getId()
         ]);
     }
@@ -97,7 +97,7 @@ class UserManagementService
     public function reviewAppeal(UserInterface $user, string $appealContent, bool $approved, string $result, string $operator): void
     {
         $this->logger->info('开始复核用户申诉', [
-            'userId' => $user->getId(),
+            'userId' => $user->getUserIdentifier(),
             'approved' => $approved,
             'operator' => $operator
         ]);
@@ -123,6 +123,6 @@ class UserManagementService
      */
     public function getUserViolationRecords(UserInterface $user): array
     {
-        return $this->violationRecordRepository->findByUser($user->getId());
+        return $this->violationRecordRepository->findByUser($user);
     }
 }

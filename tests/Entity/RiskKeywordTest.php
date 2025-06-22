@@ -9,12 +9,10 @@ use PHPUnit\Framework\TestCase;
 class RiskKeywordTest extends TestCase
 {
     private RiskKeyword $riskKeyword;
-    private \DateTimeImmutable $now;
 
     protected function setUp(): void
     {
         $this->riskKeyword = new RiskKeyword();
-        $this->now = new \DateTimeImmutable();
     }
 
     /**

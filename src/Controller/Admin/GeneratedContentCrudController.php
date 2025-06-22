@@ -5,6 +5,7 @@ namespace AIContentAuditBundle\Controller\Admin;
 use AIContentAuditBundle\Entity\GeneratedContent;
 use AIContentAuditBundle\Enum\AuditResult;
 use AIContentAuditBundle\Enum\RiskLevel;
+use AIContentAuditBundle\Repository\GeneratedContentRepository;
 use AIContentAuditBundle\Service\ContentAuditService;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -31,7 +32,7 @@ class GeneratedContentCrudController extends AbstractCrudController
 {
     public function __construct(
         private ContentAuditService $contentAuditService,
-        private EntityManagerInterface $entityManager
+        private readonly GeneratedContentRepository $contentRepository,
     ) {
     }
 
@@ -117,7 +118,7 @@ class GeneratedContentCrudController extends AbstractCrudController
 
     public function audit(EntityManagerInterface $entityManager, int $id): Response
     {
-        $content = $this->entityManager->getRepository(GeneratedContent::class)->find($id);
+        $content = $this->contentRepository->find($id);
 
         if ($content === null) {
             throw new NotFoundHttpException('内容不存在');
@@ -139,7 +140,7 @@ class GeneratedContentCrudController extends AbstractCrudController
      */
     public function submitAudit(Request $request, int $contentId): Response
     {
-        $content = $this->entityManager->getRepository(GeneratedContent::class)->find($contentId);
+        $content = $this->contentRepository->find($contentId);
 
         if ($content === null) {
             throw new NotFoundHttpException('内容不存在');

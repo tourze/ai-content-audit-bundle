@@ -99,38 +99,4 @@ class StatisticsService
             'recentKeywords' => $recentKeywords
         ];
     }
-
-    /**
-     * 辅助方法：填充缺失日期
-     *
-     * @param array $data 原始数据
-     * @param \DateTimeImmutable $startDate 开始日期
-     * @param \DateTimeImmutable $endDate 结束日期
-     * @return array 填充后的数据
-     */
-    private function fillMissingDates(array $data, \DateTimeImmutable $startDate, \DateTimeImmutable $endDate): array
-    {
-        $filledData = [];
-        $currentDate = $startDate;
-
-        while ($currentDate <= $endDate) {
-            $dateString = $currentDate->format('Y-m-d');
-            $filledData[$dateString] = $data[$dateString] ?? 0;
-            $currentDate = $currentDate->modify('+1 day');
-        }
-
-        return $filledData;
-    }
-
-    /**
-     * 辅助方法：创建日期时间范围用于条件查询
-     *
-     * @param \DateTimeImmutable $startDate 开始日期
-     * @param \DateTimeImmutable $endDate 结束日期
-     * @return string 范围条件
-     */
-    private function dateTimeRange(\DateTimeImmutable $startDate, \DateTimeImmutable $endDate): string
-    {
-        return ">= {$startDate->format('Y-m-d H:i:s')} AND <= {$endDate->format('Y-m-d H:i:s')}";
-    }
 }

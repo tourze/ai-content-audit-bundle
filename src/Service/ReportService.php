@@ -18,7 +18,6 @@ class ReportService
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly ReportRepository $reportRepository,
-        private readonly ContentAuditService $contentAuditService,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -202,7 +201,7 @@ class ReportService
 
     /**
      * 检查用户是否有恶意举报行为
-     * 
+     *
      * @param UserInterface $user 用户
      * @return bool 是否恶意举报
      */
@@ -225,7 +224,7 @@ class ReportService
         // 如果30天内有5次或以上不属实的举报，认为是恶意举报
         if (count($reports) >= 5) {
             $this->logger->warning('检测到恶意举报用户', [
-                'userId' => $user->getId(),
+                'userId' => $user->getUserIdentifier(),
                 'falseReportsCount' => count($reports)
             ]);
             

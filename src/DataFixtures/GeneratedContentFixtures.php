@@ -185,20 +185,17 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
             $keywordReference = match ($riskLevel) {
                 RiskLevel::HIGH_RISK => RiskKeywordFixtures::KEYWORD_REFERENCE_PREFIX . $keywordIndex,
                 RiskLevel::MEDIUM_RISK => RiskKeywordFixtures::KEYWORD_REFERENCE_PREFIX . (20 + $keywordIndex),
-                default => null
             };
 
-            if ($keywordReference) {
-                try {
+            try {
                     $keyword = $this->getReference($keywordReference, RiskKeyword::class);
                     // 在输出文本中插入关键词
                     $position = mt_rand(0, mb_strlen($outputText) - mb_strlen($keyword->getKeyword()));
                     $outputText = mb_substr($outputText, 0, $position) .
                         $keyword->getKeyword() .
                         mb_substr($outputText, $position);
-                } catch (\Throwable $e) {
-                    // 如果获取引用失败，不插入关键词
-                }
+            } catch (\Throwable $e) {
+                // 如果获取引用失败，不插入关键词
             }
         }
 

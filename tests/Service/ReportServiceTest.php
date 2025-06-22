@@ -6,7 +6,6 @@ use AIContentAuditBundle\Entity\GeneratedContent;
 use AIContentAuditBundle\Entity\Report;
 use AIContentAuditBundle\Enum\ProcessStatus;
 use AIContentAuditBundle\Repository\ReportRepository;
-use AIContentAuditBundle\Service\ContentAuditService;
 use AIContentAuditBundle\Service\ReportService;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
@@ -21,17 +20,14 @@ class ReportServiceTest extends TestCase
     private ReportService $service;
     private MockObject $entityManager;
     private MockObject $reportRepository;
-    private MockObject $contentAuditService;
     private MockObject $logger;
     private UserInterface $user;
     private $content;
-    private MockObject $generatedContent;
 
     protected function setUp(): void
     {
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
         $this->reportRepository = $this->createMock(ReportRepository::class);
-        $this->contentAuditService = $this->createMock(ContentAuditService::class);
         $this->logger = $this->createMock(LoggerInterface::class);
         
         // 创建一个简单的User实现来避免Mock问题
@@ -46,7 +42,6 @@ class ReportServiceTest extends TestCase
         $this->content = $this->createMock(GeneratedContent::class);
         $this->content->method('getId')->willReturn(123);
         
-        $this->generatedContent = $this->createMock(GeneratedContent::class);
         
         // 设置EntityManager返回Repository
         $this->entityManager->method('getRepository')
@@ -56,7 +51,6 @@ class ReportServiceTest extends TestCase
         $this->service = new ReportService(
             $this->entityManager,
             $this->reportRepository,
-            $this->contentAuditService,
             $this->logger
         );
     }
