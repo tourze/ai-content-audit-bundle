@@ -4,7 +4,6 @@ namespace AIContentAuditBundle\Tests\Controller\Admin;
 
 use AIContentAuditBundle\Controller\Admin\PendingContentCrudController;
 use AIContentAuditBundle\Entity\GeneratedContent;
-use AIContentAuditBundle\Enum\AuditResult;
 use AIContentAuditBundle\Repository\GeneratedContentRepository;
 use AIContentAuditBundle\Service\ContentAuditService;
 use PHPUnit\Framework\MockObject\MockObject;
