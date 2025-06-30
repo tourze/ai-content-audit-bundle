@@ -6,7 +6,6 @@ use AIContentAuditBundle\Enum\ViolationType;
 use AIContentAuditBundle\Repository\ViolationRecordRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: ViolationRecordRepository::class)]
 #[ORM\Table(name: 'ims_ai_audit_violation_record', options: ['comment' => '违规记录表'])]
@@ -17,9 +16,8 @@ class ViolationRecord implements \Stringable
     #[ORM\Column(options: ['comment' => '主键ID'])]
     private ?int $id = null;
 
-    #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?UserInterface $user = null;
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: false, options: ['comment' => '违规用户ID'])]
+    private int|string|null $user = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, options: ['comment' => '违规时间'])]
     private ?\DateTimeImmutable $violationTime = null;
@@ -49,7 +47,7 @@ class ViolationRecord implements \Stringable
     {
         return sprintf('违规ID:%d - 用户:%s - 类型:%s',
             $this->id ?? 0,
-            $this->user?->getUserIdentifier() ?? 'unknown',
+            $this->user ?? 'unknown',
             $this->violationType?->getLabel() ?? '未知'
         );
     }
@@ -59,12 +57,12 @@ class ViolationRecord implements \Stringable
         return $this->id;
     }
 
-    public function getUser(): ?UserInterface
+    public function getUser(): int|string|null
     {
         return $this->user;
     }
 
-    public function setUser(?UserInterface $user): static
+    public function setUser(int|string|null $user): static
     {
         $this->user = $user;
 

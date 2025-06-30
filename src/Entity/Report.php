@@ -6,7 +6,6 @@ use AIContentAuditBundle\Enum\ProcessStatus;
 use AIContentAuditBundle\Repository\ReportRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: ReportRepository::class)]
 #[ORM\Table(name: 'ims_ai_audit_report', options: ['comment' => '举报表'])]
@@ -17,9 +16,8 @@ class Report implements \Stringable
     #[ORM\Column(options: ['comment' => '主键ID'])]
     private ?int $id = null;
 
-    #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?UserInterface $reporterUser = null;
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: false, options: ['comment' => '举报用户ID'])]
+    private int|string|null $reporterUser = null;
 
     #[ORM\ManyToOne(inversedBy: 'reports')]
     #[ORM\JoinColumn(nullable: false)]
@@ -48,7 +46,7 @@ class Report implements \Stringable
 
     public function __toString(): string
     {
-        return sprintf('举报ID:%d - 用户:%s', $this->id ?? 0, $this->reporterUser?->getUserIdentifier() ?? 'unknown');
+        return sprintf('举报ID:%d - 用户:%s', $this->id ?? 0, $this->reporterUser ?? 'unknown');
     }
 
     public function getId(): ?int
@@ -56,12 +54,12 @@ class Report implements \Stringable
         return $this->id;
     }
 
-    public function getReporterUser(): ?UserInterface
+    public function getReporterUser(): int|string|null
     {
         return $this->reporterUser;
     }
 
-    public function setReporterUser(?UserInterface $reporterUser): static
+    public function setReporterUser(int|string|null $reporterUser): static
     {
         $this->reporterUser = $reporterUser;
 

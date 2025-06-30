@@ -5,7 +5,6 @@ namespace AIContentAuditBundle\Tests\Entity;
 use AIContentAuditBundle\Entity\ViolationRecord;
 use AIContentAuditBundle\Enum\ViolationType;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 class ViolationRecordTest extends TestCase
 {
@@ -27,10 +26,11 @@ class ViolationRecordTest extends TestCase
     
     public function provideUserData(): array
     {
-        $user = $this->createMock(UserInterface::class);
-        
         return [
-            'normal user' => [$user],
+            'string user id' => ['test_user'],
+            'numeric string user id' => ['456'],
+            'integer user id' => [123],
+            'null user' => [null],
         ];
     }
     
@@ -153,10 +153,8 @@ class ViolationRecordTest extends TestCase
     
     public function testToString(): void
     {
-        $user = $this->createMock(UserInterface::class);
-        
         $violationRecord = new ViolationRecord();
-        $violationRecord->setUser($user);
+        $violationRecord->setUser('test_user_789');
         $violationRecord->setViolationType(ViolationType::MANUAL_DELETE);
         
         // 反射设置ID
@@ -169,5 +167,6 @@ class ViolationRecordTest extends TestCase
         $stringResult = (string)$violationRecord;
         $this->assertStringContainsString('123', $stringResult);
         $this->assertStringContainsString('人工审核删除', $stringResult);
+        $this->assertStringContainsString('test_user_789', $stringResult);
     }
 } 

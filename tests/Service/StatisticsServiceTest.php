@@ -68,13 +68,14 @@ class StatisticsServiceTest extends TestCase
         
         // 第一次调用返回审核内容，第二次调用返回审核结果统计
         $query1->method('getResult')
-            ->willReturnOnConsecutiveCalls(
-                $auditedContents,
-                [
+            ->willReturnCallback(function() use ($auditedContents) {
+                static $callCount = 0;
+                $callCount++;
+                return $callCount === 1 ? $auditedContents : [
                     ['result' => 'PASS', 'count' => 1],
                     ['result' => 'MODIFY', 'count' => 1]
-                ]
-            );
+                ];
+            });
         
         // 设置logger期望
         $this->logger->expects($this->once())
@@ -208,10 +209,11 @@ class StatisticsServiceTest extends TestCase
         $queryBuilder->method('getQuery')->willReturn($query);
         
         $query->method('getResult')
-            ->willReturnOnConsecutiveCalls(
-                $auditedContents,
-                [['result' => 'PASS', 'count' => 1]]
-            );
+            ->willReturnCallback(function() use ($auditedContents) {
+                static $callCount = 0;
+                $callCount++;
+                return $callCount === 1 ? $auditedContents : [['result' => 'PASS', 'count' => 1]];
+            });
         
         // 设置logger期望
         $this->logger->expects($this->once())
@@ -282,10 +284,11 @@ class StatisticsServiceTest extends TestCase
         $queryBuilder->method('getQuery')->willReturn($query);
         
         $query->method('getResult')
-            ->willReturnOnConsecutiveCalls(
-                $auditedContents,
-                [['result' => 'PASS', 'count' => 1]]
-            );
+            ->willReturnCallback(function() use ($auditedContents) {
+                static $callCount = 0;
+                $callCount++;
+                return $callCount === 1 ? $auditedContents : [['result' => 'PASS', 'count' => 1]];
+            });
         
         // 设置logger期望
         $this->logger->expects($this->once())

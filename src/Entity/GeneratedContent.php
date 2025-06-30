@@ -9,7 +9,6 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: GeneratedContentRepository::class)]
 #[ORM\Table(name: 'ims_ai_audit_generated_content', options: ['comment' => 'AI生成内容表'])]
@@ -20,9 +19,8 @@ class GeneratedContent implements \Stringable
     #[ORM\Column(options: ['comment' => '主键ID'])]
     private ?int $id = null;
 
-    #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?UserInterface $user = null;
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: false, options: ['comment' => '用户ID'])]
+    private int|string|null $user = null;
 
     #[ORM\Column(type: Types::TEXT, options: ['comment' => '用户输入文本'])]
     private ?string $inputText = null;
@@ -61,12 +59,12 @@ class GeneratedContent implements \Stringable
         return $this->id;
     }
 
-    public function getUser(): ?UserInterface
+    public function getUser(): int|string|null
     {
         return $this->user;
     }
 
-    public function setUser(?UserInterface $user): static
+    public function setUser(int|string|null $user): static
     {
         $this->user = $user;
 

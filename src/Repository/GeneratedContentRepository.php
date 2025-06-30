@@ -9,7 +9,7 @@ use Doctrine\Persistence\ManagerRegistry;
 
 /**
  * 生成内容仓库类
- * 
+ *
  * @method GeneratedContent|null find($id, $lockMode = null, $lockVersion = null)
  * @method GeneratedContent|null findOneBy(array $criteria, array $orderBy = null)
  * @method GeneratedContent[] findAll()

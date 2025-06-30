@@ -9,7 +9,7 @@ use Doctrine\Persistence\ManagerRegistry;
 
 /**
  * 风险关键词仓库类
- * 
+ *
  * @method RiskKeyword|null find($id, $lockMode = null, $lockVersion = null)
  * @method RiskKeyword|null findOneBy(array $criteria, array $orderBy = null)
  * @method RiskKeyword[] findAll()

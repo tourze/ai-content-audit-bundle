@@ -75,7 +75,7 @@ class ReportFixtures extends Fixture implements DependentFixtureInterface, Fixtu
 
             // 创建举报记录
             $report = new Report();
-            $report->setReporterUser($reporterUser);
+            $report->setReporterUser($reporterUser->getUserIdentifier());
             $report->setReportedContent($content);
 
             // 设置随机举报理由

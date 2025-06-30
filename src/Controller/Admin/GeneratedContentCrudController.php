@@ -5,6 +5,7 @@ namespace AIContentAuditBundle\Controller\Admin;
 use AIContentAuditBundle\Entity\GeneratedContent;
 use AIContentAuditBundle\Enum\AuditResult;
 use AIContentAuditBundle\Enum\RiskLevel;
+use AIContentAuditBundle\Exception\InvalidAuditResultException;
 use AIContentAuditBundle\Repository\GeneratedContentRepository;
 use AIContentAuditBundle\Service\ContentAuditService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -27,7 +28,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted(attribute: 'ROLE_ADMIN')]
 class GeneratedContentCrudController extends AbstractCrudController
 {
     public function __construct(
@@ -149,7 +150,7 @@ class GeneratedContentCrudController extends AbstractCrudController
         // 获取审核结果
         $auditResultValue = $request->get('auditResult');
         if ($auditResultValue === null) {
-            throw new \InvalidArgumentException('审核结果不能为空');
+            throw new InvalidAuditResultException('审核结果不能为空');
         }
 
         $auditResult = AuditResult::from($auditResultValue);

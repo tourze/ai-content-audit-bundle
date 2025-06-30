@@ -10,7 +10,6 @@ use AIContentAuditBundle\Enum\ViolationType;
 use AIContentAuditBundle\Repository\RiskKeywordRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * 内容审核服务类
@@ -29,20 +28,20 @@ class ContentAuditService
      *
      * @param string $inputText 用户输入文本
      * @param string $outputText AI输出文本
-     * @param UserInterface $user 用户
+     * @param int|string $userId 用户ID
      * @return GeneratedContent 审核后的内容实体
      */
-    public function machineAudit(string $inputText, string $outputText, UserInterface $user): GeneratedContent
+    public function machineAudit(string $inputText, string $outputText, int|string $userId): GeneratedContent
     {
         $this->logger->info('开始机器审核内容', [
-            'userId' => $user->getUserIdentifier(),
+            'userId' => $userId,
             'inputLength' => strlen($inputText),
             'outputLength' => strlen($outputText),
         ]);
 
         // 创建生成内容记录
         $content = new GeneratedContent();
-        $content->setUser($user);
+        $content->setUser($userId);
         $content->setInputText($inputText);
         $content->setOutputText($outputText);
         $content->setMachineAuditTime(new \DateTimeImmutable());
@@ -66,7 +65,7 @@ class ContentAuditService
 
         // 处理高风险内容
         if ($riskLevel === RiskLevel::HIGH_RISK) {
-            $this->handleHighRiskContent($content, $user);
+            $this->handleHighRiskContent($content, $userId);
         }
 
         return $content;
@@ -121,18 +120,18 @@ class ContentAuditService
      * 处理高风险内容
      *
      * @param GeneratedContent $content 内容
-     * @param UserInterface $user 用户
+     * @param int|string $userId 用户ID
      */
-    private function handleHighRiskContent(GeneratedContent $content, UserInterface $user): void
+    private function handleHighRiskContent(GeneratedContent $content, int|string $userId): void
     {
         $this->logger->warning('处理高风险内容', [
             'contentId' => $content->getId(),
-            'userId' => $user->getUserIdentifier()
+            'userId' => $userId
         ]);
 
         // 创建违规记录
         $violationRecord = new ViolationRecord();
-        $violationRecord->setUser($user);
+        $violationRecord->setUser($userId);
         $violationRecord->setViolationContent($content->getInputText() . "\n" . $content->getOutputText());
         $violationRecord->setViolationType(ViolationType::MACHINE_HIGH_RISK);
         $violationRecord->setProcessResult('系统自动禁用账号');

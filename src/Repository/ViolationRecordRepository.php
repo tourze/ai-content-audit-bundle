@@ -6,11 +6,10 @@ use AIContentAuditBundle\Entity\ViolationRecord;
 use AIContentAuditBundle\Enum\ViolationType;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * 违规记录仓库类
- * 
+ *
  * @method ViolationRecord|null find($id, $lockMode = null, $lockVersion = null)
  * @method ViolationRecord|null findOneBy(array $criteria, array $orderBy = null)
  * @method ViolationRecord[] findAll()
@@ -26,14 +25,14 @@ class ViolationRecordRepository extends ServiceEntityRepository
     /**
      * 查找特定用户的违规记录
      *
-     * @param UserInterface $user 用户对象
+     * @param int|string $userId 用户ID
      * @return ViolationRecord[] 返回违规记录列表
      */
-    public function findByUser(UserInterface $user): array
+    public function findByUser(int|string $userId): array
     {
         return $this->createQueryBuilder('v')
-            ->andWhere('v.user = :user')
-            ->setParameter('user', $user)
+            ->andWhere('v.user = :userId')
+            ->setParameter('userId', $userId)
             ->orderBy('v.violationTime', 'DESC')
             ->getQuery()
             ->getResult();
@@ -118,15 +117,15 @@ class ViolationRecordRepository extends ServiceEntityRepository
     /**
      * 统计指定用户的违规次数
      *
-     * @param UserInterface $user 用户对象
+     * @param int|string $userId 用户ID
      * @return int 返回违规次数
      */
-    public function countByUser(UserInterface $user): int
+    public function countByUser(int|string $userId): int
     {
         return (int) $this->createQueryBuilder('v')
             ->select('COUNT(v.id)')
-            ->andWhere('v.user = :user')
-            ->setParameter('user', $user)
+            ->andWhere('v.user = :userId')
+            ->setParameter('userId', $userId)
             ->getQuery()
             ->getSingleScalarResult();
     }

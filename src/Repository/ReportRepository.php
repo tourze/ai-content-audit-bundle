@@ -9,7 +9,7 @@ use Doctrine\Persistence\ManagerRegistry;
 
 /**
  * 举报仓库类
- * 
+ *
  * @method Report|null find($id, $lockMode = null, $lockVersion = null)
  * @method Report|null findOneBy(array $criteria, array $orderBy = null)
  * @method Report[] findAll()

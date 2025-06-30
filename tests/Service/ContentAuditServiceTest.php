@@ -14,7 +14,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 class ContentAuditServiceTest extends TestCase
 {
@@ -22,22 +21,18 @@ class ContentAuditServiceTest extends TestCase
     private EntityManagerInterface|MockObject $entityManager;
     private RiskKeywordRepository|MockObject $riskKeywordRepository;
     private LoggerInterface|MockObject $logger;
-    private UserInterface|MockObject $user;
 
     protected function setUp(): void
     {
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
         $this->riskKeywordRepository = $this->createMock(RiskKeywordRepository::class);
         $this->logger = $this->createMock(LoggerInterface::class);
-        $this->user = $this->createMock(UserInterface::class);
         
         $this->service = new ContentAuditService(
             $this->entityManager,
             $this->riskKeywordRepository,
             $this->logger
         );
-        
-        $this->user->method('getUserIdentifier')->willReturn('test_user');
     }
     
     public function testMachineAudit_withNoRiskContent()
@@ -61,7 +56,7 @@ class ContentAuditServiceTest extends TestCase
         $result = $this->service->machineAudit(
             'This is a safe input', 
             'This is a safe output', 
-            $this->user
+            'test_user'
         );
         
         // 断言结果
@@ -109,7 +104,7 @@ class ContentAuditServiceTest extends TestCase
         $result = $this->service->machineAudit(
             'This contains dangerous content', 
             'Safe response', 
-            $this->user
+            'test_user'
         );
         
         // 断言结果
@@ -142,7 +137,7 @@ class ContentAuditServiceTest extends TestCase
         $result = $this->service->machineAudit(
             'This contains suspicious content', 
             'Safe response', 
-            $this->user
+            'test_user'
         );
         
         // 断言结果
@@ -176,7 +171,7 @@ class ContentAuditServiceTest extends TestCase
         $result = $this->service->machineAudit(
             'This contains mild content', 
             'Safe response', 
-            $this->user
+            'test_user'
         );
         
         // 断言结果
@@ -199,7 +194,7 @@ class ContentAuditServiceTest extends TestCase
             ->method('flush');
             
         // 执行空内容审核
-        $result = $this->service->machineAudit('', '', $this->user);
+        $result = $this->service->machineAudit('', '', 'test_user');
         
         // 断言结果
         $this->assertInstanceOf(GeneratedContent::class, $result);
@@ -236,7 +231,7 @@ class ContentAuditServiceTest extends TestCase
         $result = $this->service->machineAudit(
             'This contains mild and dangerous content', 
             'Safe response', 
-            $this->user
+            'test_user'
         );
         
         // 断言结果 - 应该取最高风险等级
@@ -269,7 +264,7 @@ class ContentAuditServiceTest extends TestCase
     {
         // 创建测试内容
         $content = new GeneratedContent();
-        $content->setUser($this->user);
+        $content->setUser('test_user');
         $content->setInputText('Questionable input');
         $content->setOutputText('Questionable output');
         $content->setMachineAuditResult(RiskLevel::MEDIUM_RISK);
@@ -291,7 +286,7 @@ class ContentAuditServiceTest extends TestCase
     {
         // 创建测试内容
         $content = new GeneratedContent();
-        $content->setUser($this->user);
+        $content->setUser('test_user');
         $content->setInputText('Inappropriate input');
         $content->setOutputText('Inappropriate output');
         $content->setMachineAuditResult(RiskLevel::MEDIUM_RISK);
@@ -349,13 +344,6 @@ class ContentAuditServiceTest extends TestCase
         $inputText = '测试输入';
         $outputText = '这是一个正常的内容'; // 不包含风险关键词
         
-        // 创建一个User实例
-        $user = new class implements UserInterface {
-            public function getUserIdentifier(): string { return 'test_user'; }
-            public function getRoles(): array { return ['ROLE_USER']; }
-            public function eraseCredentials(): void { }
-        };
-        
         // Mock关键词匹配为不匹配
         $this->riskKeywordRepository->method('findByRiskLevel')
             ->willReturn([]);
@@ -363,7 +351,7 @@ class ContentAuditServiceTest extends TestCase
         $this->entityManager->expects($this->once())
             ->method('flush');
         
-        $result = $this->service->machineAudit($inputText, $outputText, $user);
+        $result = $this->service->machineAudit($inputText, $outputText, 'test_user');
         
         $this->assertEquals(RiskLevel::NO_RISK, $result->getMachineAuditResult()); // 期望无风险
         $this->assertInstanceOf(\DateTimeImmutable::class, $result->getMachineAuditTime());
@@ -399,7 +387,7 @@ class ContentAuditServiceTest extends TestCase
         $result = $this->service->machineAudit(
             'This is dangerous content', 
             'Safe response', 
-            $this->user
+            'test_user'
         );
         
         // 断言结果 - 应该能匹配到关键词
@@ -422,7 +410,7 @@ class ContentAuditServiceTest extends TestCase
         $this->service->machineAudit(
             'Test input', 
             'Test output', 
-            $this->user
+            'test_user'
         );
     }
     
@@ -446,7 +434,7 @@ class ContentAuditServiceTest extends TestCase
         $this->service->machineAudit(
             'Test input', 
             'Test output', 
-            $this->user
+            'test_user'
         );
     }
     
@@ -470,7 +458,7 @@ class ContentAuditServiceTest extends TestCase
             ->method('flush');
             
         // 执行审核
-        $result = $this->service->machineAudit($longText, $longText, $this->user);
+        $result = $this->service->machineAudit($longText, $longText, 'test_user');
         
         // 断言结果
         $this->assertEquals(RiskLevel::NO_RISK, $result->getMachineAuditResult());
@@ -497,7 +485,7 @@ class ContentAuditServiceTest extends TestCase
             ->method('flush');
             
         // 执行审核
-        $result = $this->service->machineAudit($specialText, $specialText, $this->user);
+        $result = $this->service->machineAudit($specialText, $specialText, 'test_user');
         
         // 断言结果
         $this->assertEquals(RiskLevel::NO_RISK, $result->getMachineAuditResult());
@@ -524,7 +512,7 @@ class ContentAuditServiceTest extends TestCase
             ->method('flush');
             
         // 执行审核
-        $result = $this->service->machineAudit($unicodeText, $unicodeText, $this->user);
+        $result = $this->service->machineAudit($unicodeText, $unicodeText, 'test_user');
         
         // 断言结果
         $this->assertEquals(RiskLevel::NO_RISK, $result->getMachineAuditResult());

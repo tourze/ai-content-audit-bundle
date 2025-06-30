@@ -38,7 +38,11 @@ class AdminMenuTest extends TestCase
         $this->rootItem->expects($this->any())
             ->method('getChild')
             ->with('内容审核')
-            ->will($this->onConsecutiveCalls(null, $this->contentMenuItem));
+            ->willReturnCallback(function() {
+                static $callCount = 0;
+                $callCount++;
+                return $callCount === 1 ? null : $this->contentMenuItem;
+            });
             
         $this->rootItem->expects($this->once())
             ->method('addChild')

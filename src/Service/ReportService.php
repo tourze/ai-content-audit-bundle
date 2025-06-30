@@ -8,7 +8,6 @@ use AIContentAuditBundle\Enum\ProcessStatus;
 use AIContentAuditBundle\Repository\ReportRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * 举报服务类
@@ -26,24 +25,24 @@ class ReportService
      * 提交举报
      *
      * @param GeneratedContent $content 被举报内容
-     * @param UserInterface $reporterUser 举报用户
+     * @param int|string $reporterUserId 举报用户ID
      * @param string $reportReason 举报理由
      * @return Report 创建的举报实体
      */
     public function submitReport(
         GeneratedContent $content, 
-        UserInterface $reporterUser, 
+        int|string $reporterUserId, 
         string $reportReason
     ): Report {
         $this->logger->info('用户提交举报', [
-            'reporterUserId' => $reporterUser->getUserIdentifier(),
+            'reporterUserId' => $reporterUserId,
             'contentId' => $content->getId(),
         ]);
 
         // 创建举报记录
         $report = new Report();
         $report->setReportedContent($content);
-        $report->setReporterUser($reporterUser);
+        $report->setReporterUser($reporterUserId);
         $report->setReportReason($reportReason);
         $report->setProcessStatus(ProcessStatus::PENDING);
 
@@ -129,12 +128,12 @@ class ReportService
     /**
      * 查找特定用户的举报
      *
-     * @param UserInterface $user 用户
+     * @param int|string $userId 用户ID
      * @return Report[] 举报列表
      */
-    public function findReportsByUser(UserInterface $user): array
+    public function findReportsByUser(int|string $userId): array
     {
-        return $this->reportRepository->findByReporterUser($user->getUserIdentifier());
+        return $this->reportRepository->findByReporterUser($userId);
     }
 
     /**
@@ -202,10 +201,10 @@ class ReportService
     /**
      * 检查用户是否有恶意举报行为
      *
-     * @param UserInterface $user 用户
+     * @param int|string $userId 用户ID
      * @return bool 是否恶意举报
      */
-    public function checkMaliciousReporting(UserInterface $user): bool
+    public function checkMaliciousReporting(int|string $userId): bool
     {
         // 获取用户最近30天的举报
         $thirtyDaysAgo = new \DateTimeImmutable('-30 days');
@@ -214,7 +213,7 @@ class ReportService
             ->andWhere('r.reportTime >= :timeLimit')
             ->andWhere('r.processStatus = :status')
             ->andWhere('r.processResult LIKE :result')
-            ->setParameter('user', $user)
+            ->setParameter('user', $userId)
             ->setParameter('timeLimit', $thirtyDaysAgo)
             ->setParameter('status', '已处理')
             ->setParameter('result', '%不属实%')
@@ -224,7 +223,7 @@ class ReportService
         // 如果30天内有5次或以上不属实的举报，认为是恶意举报
         if (count($reports) >= 5) {
             $this->logger->warning('检测到恶意举报用户', [
-                'userId' => $user->getUserIdentifier(),
+                'userId' => $userId,
                 'falseReportsCount' => count($reports)
             ]);
             

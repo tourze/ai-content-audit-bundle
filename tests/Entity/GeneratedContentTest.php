@@ -7,7 +7,6 @@ use AIContentAuditBundle\Entity\Report;
 use AIContentAuditBundle\Enum\AuditResult;
 use AIContentAuditBundle\Enum\RiskLevel;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 class GeneratedContentTest extends TestCase
 {
@@ -29,10 +28,11 @@ class GeneratedContentTest extends TestCase
     
     public function provideUserData(): array
     {
-        $user = $this->createMock(UserInterface::class);
-        
         return [
-            'normal user' => [$user],
+            'string user id' => ['test_user'],
+            'numeric string user id' => ['123'],
+            'integer user id' => [456],
+            'null user' => [null],
         ];
     }
     

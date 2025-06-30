@@ -78,7 +78,7 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
 
             // 创建生成内容实体
             $content = new GeneratedContent();
-            $content->setUser($user);
+            $content->setUser($user->getUserIdentifier());
             $content->setInputText($inputText);
             $content->setOutputText($outputText);
             $content->setMachineAuditResult($riskLevel);

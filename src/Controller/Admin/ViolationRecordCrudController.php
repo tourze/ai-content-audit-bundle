@@ -21,7 +21,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted(attribute: 'ROLE_ADMIN')]
 class ViolationRecordCrudController extends AbstractCrudController
 {
     public static function getEntityFqcn(): string

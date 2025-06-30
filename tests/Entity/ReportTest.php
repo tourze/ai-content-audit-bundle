@@ -6,7 +6,6 @@ use AIContentAuditBundle\Entity\GeneratedContent;
 use AIContentAuditBundle\Entity\Report;
 use AIContentAuditBundle\Enum\ProcessStatus;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 class ReportTest extends TestCase
 {
@@ -20,7 +19,7 @@ class ReportTest extends TestCase
     /**
      * @dataProvider provideReporterUserData
      */
-    public function testReporterUserAccessors(UserInterface $user): void
+    public function testReporterUserAccessors(int|string|null $user): void
     {
         $this->report->setReporterUser($user);
         $this->assertSame($user, $this->report->getReporterUser());
@@ -28,10 +27,11 @@ class ReportTest extends TestCase
     
     public function provideReporterUserData(): array
     {
-        $user = $this->createMock(UserInterface::class);
-        
         return [
-            'normal user' => [$user],
+            'string user id' => ['test_user'],
+            'numeric string user id' => ['test_user_123'],
+            'integer user id' => [789],
+            'null user' => [null],
         ];
     }
     
@@ -146,11 +146,8 @@ class ReportTest extends TestCase
     
     public function testToString(): void
     {
-        // 创建不使用__toString方法的用户模拟
-        $user = $this->createMock(UserInterface::class);
-        
         $report = new Report();
-        $report->setReporterUser($user);
+        $report->setReporterUser('test_user_123');
         
         // 反射设置ID
         $reflectionClass = new \ReflectionClass($report);
@@ -161,6 +158,7 @@ class ReportTest extends TestCase
         // 只测试字符串转换方法被调用不会报错
         $result = (string)$report;
         $this->assertStringContainsString('123', $result);
+        $this->assertStringContainsString('test_user_123', $result);
     }
     
     public function testIsProcessed(): void

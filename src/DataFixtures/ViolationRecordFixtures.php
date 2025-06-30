@@ -83,7 +83,7 @@ class ViolationRecordFixtures extends Fixture implements DependentFixtureInterfa
 
             // 创建违规记录
             $violationRecord = new ViolationRecord();
-            $violationRecord->setUser($user);
+            $violationRecord->setUser($user->getUserIdentifier());
 
             // 设置违规时间（1到30天内的随机时间）
             $randomDays = mt_rand(1, 30);

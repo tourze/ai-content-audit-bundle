@@ -10,7 +10,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 class UserManagementServiceTest extends TestCase
 {
@@ -18,21 +17,12 @@ class UserManagementServiceTest extends TestCase
     private MockObject $entityManager;
     private MockObject $violationRecordRepository;
     private MockObject $logger;
-    private UserInterface $user;
 
     protected function setUp(): void
     {
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
         $this->violationRecordRepository = $this->createMock(ViolationRecordRepository::class);
         $this->logger = $this->createMock(LoggerInterface::class);
-        
-        // 创建一个简单的User实现来避免Mock问题
-        $this->user = new class implements UserInterface {
-            public function getId(): int { return 123; }
-            public function getUserIdentifier(): string { return 'test_user'; }
-            public function getRoles(): array { return ['ROLE_USER']; }
-            public function eraseCredentials(): void { }
-        };
         
         // 设置EntityManager返回Repository
         $this->entityManager->method('getRepository')
@@ -82,7 +72,7 @@ class UserManagementServiceTest extends TestCase
             ->method('flush');
             
         // 执行方法
-        $this->service->disableUser($this->user, $reason, $operator);
+        $this->service->disableUser('test_user', $reason, $operator);
         
         // 添加断言以避免 risky test
         $this->assertTrue(true, '测试成功执行，所有 mock expectations 已验证');
@@ -112,7 +102,7 @@ class UserManagementServiceTest extends TestCase
             ->method('flush');
             
         // 执行方法
-        $this->service->enableUser($this->user, $reason, $operator);
+        $this->service->enableUser('test_user', $reason, $operator);
     }
     
     public function testReviewAppeal_withApprovedResult()
@@ -146,7 +136,7 @@ class UserManagementServiceTest extends TestCase
             ->method('flush');
             
         // 执行方法
-        $this->service->reviewAppeal($this->user, $appealContent, $approved, $result, $operator);
+        $this->service->reviewAppeal('test_user', $appealContent, $approved, $result, $operator);
         
         // 添加断言以避免 risky test
         $this->assertTrue(true, '测试成功执行，申诉审核已正确处理');
@@ -176,7 +166,7 @@ class UserManagementServiceTest extends TestCase
             ->method('flush');
             
         // 执行方法
-        $this->service->reviewAppeal($this->user, $appealContent, $approved, $result, $operator);
+        $this->service->reviewAppeal('test_user', $appealContent, $approved, $result, $operator);
         
         // 添加断言以避免 risky test
         $this->assertTrue(true, '测试成功执行，申诉驳回已正确处理');
@@ -192,10 +182,10 @@ class UserManagementServiceTest extends TestCase
         
         $this->violationRecordRepository->expects($this->once())
             ->method('findByUser')
-            ->with($this->user)
+            ->with('test_user')
             ->willReturn($expectedRecords);
             
-        $result = $this->service->getUserViolationRecords($this->user);
+        $result = $this->service->getUserViolationRecords('test_user');
         
         $this->assertEquals($expectedRecords, $result);
         $this->assertCount(3, $result);
@@ -225,7 +215,7 @@ class UserManagementServiceTest extends TestCase
             ->method('flush');
             
         // 执行方法
-        $this->service->disableUser($this->user, $reason, $operator);
+        $this->service->disableUser('test_user', $reason, $operator);
     }
     
     public function testEnableUser_withLongReason()
@@ -249,7 +239,7 @@ class UserManagementServiceTest extends TestCase
             ->method('flush');
             
         // 执行方法
-        $this->service->enableUser($this->user, $reason, $operator);
+        $this->service->enableUser('test_user', $reason, $operator);
     }
     
     public function testReviewAppeal_withEmptyAppealContent()
@@ -275,17 +265,17 @@ class UserManagementServiceTest extends TestCase
             ->method('flush');
             
         // 执行方法
-        $this->service->reviewAppeal($this->user, $appealContent, $approved, $result, $operator);
+        $this->service->reviewAppeal('test_user', $appealContent, $approved, $result, $operator);
     }
     
     public function testGetUserViolationRecords_withNoRecords()
     {
         $this->violationRecordRepository->expects($this->once())
             ->method('findByUser')
-            ->with($this->user)
+            ->with('test_user')
             ->willReturn([]);
             
-        $result = $this->service->getUserViolationRecords($this->user);
+        $result = $this->service->getUserViolationRecords('test_user');
         
         $this->assertEquals([], $result);
         $this->assertCount(0, $result);
@@ -311,7 +301,7 @@ class UserManagementServiceTest extends TestCase
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Database error');
         
-        $this->service->disableUser($this->user, $reason, $operator);
+        $this->service->disableUser('test_user', $reason, $operator);
     }
     
     /**
@@ -321,13 +311,13 @@ class UserManagementServiceTest extends TestCase
     {
         $this->violationRecordRepository->expects($this->once())
             ->method('findByUser')
-            ->with($this->user)
+            ->with('test_user')
             ->willThrowException(new \Exception('Query error'));
             
         // 执行方法，应该抛出异常
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Query error');
         
-        $this->service->getUserViolationRecords($this->user);
+        $this->service->getUserViolationRecords('test_user');
     }
 } 

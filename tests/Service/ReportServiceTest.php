@@ -13,7 +13,6 @@ use Doctrine\ORM\QueryBuilder;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 class ReportServiceTest extends TestCase
 {
@@ -21,7 +20,6 @@ class ReportServiceTest extends TestCase
     private MockObject $entityManager;
     private MockObject $reportRepository;
     private MockObject $logger;
-    private UserInterface $user;
     private $content;
 
     protected function setUp(): void
@@ -29,14 +27,6 @@ class ReportServiceTest extends TestCase
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
         $this->reportRepository = $this->createMock(ReportRepository::class);
         $this->logger = $this->createMock(LoggerInterface::class);
-        
-        // 创建一个简单的User实现来避免Mock问题
-        $this->user = new class implements UserInterface {
-            public function getId(): int { return 123; }
-            public function getUserIdentifier(): string { return 'test_user'; }
-            public function getRoles(): array { return ['ROLE_USER']; }
-            public function eraseCredentials(): void { }
-        };
         
         // 创建一个简单的内容对象用于测试
         $this->content = $this->createMock(GeneratedContent::class);
@@ -76,7 +66,7 @@ class ReportServiceTest extends TestCase
             ->method('flush');
             
         // 执行方法
-        $result = $this->service->submitReport($this->content, $this->user, $reportReason);
+        $result = $this->service->submitReport($this->content, 'test_user', $reportReason);
         
         // 断言结果
         $this->assertInstanceOf(Report::class, $result);
@@ -189,7 +179,7 @@ class ReportServiceTest extends TestCase
             ->with('test_user')
             ->willReturn($expectedReports);
             
-        $result = $this->service->findReportsByUser($this->user);
+        $result = $this->service->findReportsByUser('test_user');
         
         $this->assertEquals($expectedReports, $result);
     }
@@ -267,7 +257,7 @@ class ReportServiceTest extends TestCase
         $this->logger->expects($this->once())
             ->method('warning');
             
-        $result = $this->service->checkMaliciousReporting($this->user);
+        $result = $this->service->checkMaliciousReporting('test_user');
         
         $this->assertTrue($result);
     }
@@ -294,7 +284,7 @@ class ReportServiceTest extends TestCase
         $this->logger->expects($this->never())
             ->method('warning');
             
-        $result = $this->service->checkMaliciousReporting($this->user);
+        $result = $this->service->checkMaliciousReporting('test_user');
         
         $this->assertFalse($result);
     }
@@ -315,7 +305,7 @@ class ReportServiceTest extends TestCase
             ->method('flush');
             
         // 执行方法
-        $result = $this->service->submitReport($this->content, $this->user, $reportReason);
+        $result = $this->service->submitReport($this->content, 'test_user', $reportReason);
         
         // 断言结果
         $this->assertInstanceOf(Report::class, $result);
