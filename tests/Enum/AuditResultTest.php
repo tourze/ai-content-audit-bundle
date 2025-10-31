@@ -3,19 +3,26 @@
 namespace AIContentAuditBundle\Tests\Enum;
 
 use AIContentAuditBundle\Enum\AuditResult;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tourze\PHPUnitEnum\AbstractEnumTestCase;
 
-class AuditResultTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(AuditResult::class)]
+final class AuditResultTest extends AbstractEnumTestCase
 {
-    /**
-     * @dataProvider provideAuditResultLabelData
-     */
+    #[DataProvider('provideAuditResultLabelData')]
     public function testGetLabel(AuditResult $auditResult, string $expectedLabel): void
     {
         $this->assertEquals($expectedLabel, $auditResult->getLabel());
     }
-    
-    public function provideAuditResultLabelData(): array
+
+    /**
+     * @return array<string, array{0: AuditResult, 1: string}>
+     */
+    public static function provideAuditResultLabelData(): array
     {
         return [
             'pass' => [AuditResult::PASS, '通过'],
@@ -23,16 +30,17 @@ class AuditResultTest extends TestCase
             'delete' => [AuditResult::DELETE, '删除'],
         ];
     }
-    
-    /**
-     * @dataProvider provideAuditResultStyleData
-     */
+
+    #[DataProvider('provideAuditResultStyleData')]
     public function testGetStyle(AuditResult $auditResult, string $expectedStyle): void
     {
         $this->assertEquals($expectedStyle, $auditResult->getStyle());
     }
-    
-    public function provideAuditResultStyleData(): array
+
+    /**
+     * @return array<string, array{0: AuditResult, 1: string}>
+     */
+    public static function provideAuditResultStyleData(): array
     {
         return [
             'pass' => [AuditResult::PASS, 'success'],
@@ -40,7 +48,7 @@ class AuditResultTest extends TestCase
             'delete' => [AuditResult::DELETE, 'danger'],
         ];
     }
-    
+
     /**
      * 测试所有审核结果的值是否符合预期
      */
@@ -50,4 +58,17 @@ class AuditResultTest extends TestCase
         $this->assertEquals('修改', AuditResult::MODIFY->value);
         $this->assertEquals('删除', AuditResult::DELETE->value);
     }
-} 
+
+    /**
+     * 测试toArray方法返回所有枚举值的数组
+     */
+    public function testToArray(): void
+    {
+        $expected = [
+            'value' => '通过',
+            'label' => '通过',
+        ];
+
+        $this->assertEquals($expected, AuditResult::PASS->toArray());
+    }
+}

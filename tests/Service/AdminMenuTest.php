@@ -4,102 +4,91 @@ namespace AIContentAuditBundle\Tests\Service;
 
 use AIContentAuditBundle\Service\AdminMenu;
 use Knp\Menu\ItemInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
 use Tourze\EasyAdminMenuBundle\Service\LinkGeneratorInterface;
+use Tourze\PHPUnitSymfonyWebTest\AbstractEasyAdminMenuTestCase;
 
-class AdminMenuTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(AdminMenu::class)]
+#[RunTestsInSeparateProcesses]
+final class AdminMenuTest extends AbstractEasyAdminMenuTestCase
 {
-    private AdminMenu $adminMenu;
-    private LinkGeneratorInterface|MockObject $linkGenerator;
-    private ItemInterface|MockObject $rootItem;
-    private ItemInterface|MockObject $contentMenuItem;
+    private LinkGeneratorInterface&MockObject $linkGenerator;
 
-    protected function setUp(): void
+    protected function onSetUp(): void
     {
         $this->linkGenerator = $this->createMock(LinkGeneratorInterface::class);
-        $this->adminMenu = new AdminMenu($this->linkGenerator);
-        
-        // 创建根菜单项
-        $this->rootItem = $this->createMock(ItemInterface::class);
-        
-        // 创建内容审核子菜单
-        $this->contentMenuItem = $this->createMock(ItemInterface::class);
+        self::getContainer()->set(LinkGeneratorInterface::class, $this->linkGenerator);
     }
-    
-    public function testInvokeCreatesAllMenuItems(): void
+
+    public function testServiceIsCallable(): void
     {
-        // 设置LinkGenerator行为
-        $this->linkGenerator->expects($this->exactly(4))
-            ->method('getCurdListPage')
-            ->willReturn('/test-url');
-        
-        // 首先返回null，表示需要创建菜单，然后返回contentMenuItem
-        $this->rootItem->expects($this->any())
+        $service = self::getService(AdminMenu::class);
+        // Verify the service implements __invoke method
+        $reflection = new \ReflectionClass($service);
+        $this->assertTrue($reflection->hasMethod('__invoke'));
+        $this->assertTrue($reflection->getMethod('__invoke')->isPublic());
+    }
+
+    public function testInvokeCreatesContentMenu(): void
+    {
+        $service = self::getService(AdminMenu::class);
+        $rootMenu = $this->createMock(ItemInterface::class);
+        $contentMenu = $this->createMock(ItemInterface::class);
+
+        // 第一次调用返回null（不存在），第二次调用返回子菜单对象
+        $rootMenu->expects($this->exactly(2))
             ->method('getChild')
             ->with('内容审核')
-            ->willReturnCallback(function() {
-                static $callCount = 0;
-                $callCount++;
-                return $callCount === 1 ? null : $this->contentMenuItem;
-            });
-            
-        $this->rootItem->expects($this->once())
+            ->willReturnOnConsecutiveCalls(null, $contentMenu)
+        ;
+
+        $rootMenu->expects($this->once())
             ->method('addChild')
             ->with('内容审核')
-            ->willReturn($this->contentMenuItem);
-            
-        // 设置contentMenuItem的行为
-        $this->contentMenuItem->expects($this->exactly(4))
+            ->willReturn($contentMenu)
+        ;
+
+        // 设置子菜单的添加期望
+        $contentMenu->expects($this->exactly(4))
             ->method('addChild')
-            ->willReturnCallback(function($name) {
-                $menuItem = $this->createMock(ItemInterface::class);
-                $menuItem->expects($this->once())
-                    ->method('setUri')
-                    ->willReturnSelf();
-                $menuItem->expects($this->once())
-                    ->method('setAttribute')
-                    ->with('icon', $this->anything())
-                    ->willReturnSelf();
-                return $menuItem;
-            });
-            
-        // 执行菜单构建
-        ($this->adminMenu)($this->rootItem);
+            ->willReturnCallback(function () {
+                return $this->createMock(ItemInterface::class);
+            })
+        ;
+
+        $service->__invoke($rootMenu);
     }
-    
-    public function testInvokeWithExistingContentMenu(): void
+
+    public function testInvokeHandlesExistingContentMenu(): void
     {
-        // 设置LinkGenerator行为
-        $this->linkGenerator->expects($this->exactly(4))
-            ->method('getCurdListPage')
-            ->willReturn('/some-url');
-        
-        // 总是返回现有的菜单项
-        $this->rootItem->expects($this->any())
+        $service = self::getService(AdminMenu::class);
+        $rootMenu = $this->createMock(ItemInterface::class);
+        $contentMenu = $this->createMock(ItemInterface::class);
+
+        // 第一次和第二次调用都返回已存在的子菜单
+        $rootMenu->expects($this->exactly(2))
             ->method('getChild')
             ->with('内容审核')
-            ->willReturn($this->contentMenuItem);
-            
-        // 不应该再创建内容审核菜单
-        $this->rootItem->expects($this->never())
-            ->method('addChild');
-            
-        // 设置contentMenuItem的行为
-        $menuItem = $this->createMock(ItemInterface::class);
-        $menuItem->expects($this->exactly(4))
-            ->method('setUri')
-            ->willReturnSelf();
-        $menuItem->expects($this->exactly(4))
-            ->method('setAttribute')
-            ->willReturnSelf();
-            
-        // 验证子菜单添加
-        $this->contentMenuItem->expects($this->exactly(4))
+            ->willReturn($contentMenu)
+        ;
+
+        $rootMenu->expects($this->never())
             ->method('addChild')
-            ->willReturn($menuItem);
-            
-        // 执行菜单构建
-        ($this->adminMenu)($this->rootItem);
+        ;
+
+        // 设置子菜单的添加期望
+        $contentMenu->expects($this->exactly(4))
+            ->method('addChild')
+            ->willReturnCallback(function () {
+                return $this->createMock(ItemInterface::class);
+            })
+        ;
+
+        $service->__invoke($rootMenu);
     }
-} 
+}

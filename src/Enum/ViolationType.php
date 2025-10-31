@@ -11,7 +11,7 @@ use Tourze\EnumExtra\SelectTrait;
 /**
  * 违规类型枚举
  */
-enum ViolationType: string implements Itemable, Labelable, Selectable
+enum ViolationType: string implements Labelable, Itemable, Selectable
 {
     use ItemTrait;
     use SelectTrait;
@@ -20,9 +20,6 @@ enum ViolationType: string implements Itemable, Labelable, Selectable
     case USER_REPORT = '用户举报';
     case REPEATED_VIOLATION = '重复违规';
 
-    /**
-     * 获取显示标签
-     */
     public function getLabel(): string
     {
         return match ($this) {
@@ -32,4 +29,22 @@ enum ViolationType: string implements Itemable, Labelable, Selectable
             self::REPEATED_VIOLATION => '重复违规',
         };
     }
-} 
+
+    /**
+     * 获取所有枚举的选项数组（用于下拉列表等）
+     *
+     * @return array<int, array{value: string, label: string}>
+     */
+    public static function toSelectItems(): array
+    {
+        $result = [];
+        foreach (self::cases() as $case) {
+            $result[] = [
+                'value' => $case->value,
+                'label' => $case->getLabel(),
+            ];
+        }
+
+        return $result;
+    }
+}

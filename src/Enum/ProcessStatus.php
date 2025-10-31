@@ -11,28 +11,22 @@ use Tourze\EnumExtra\SelectTrait;
 /**
  * 处理状态枚举
  */
-enum ProcessStatus: string implements Itemable, Labelable, Selectable
+enum ProcessStatus: string implements Labelable, Itemable, Selectable
 {
     use ItemTrait;
     use SelectTrait;
+
     case PENDING = '待审核';
     case PROCESSING = '审核中';
     case COMPLETED = '已处理';
 
-    /**
-     * 获取显示标签
-     */
     public function getLabel(): string
     {
-        return match ($this) {
-            self::PENDING => '待审核',
-            self::PROCESSING => '审核中',
-            self::COMPLETED => '已处理',
-        };
+        return $this->value;
     }
 
     /**
-     * 获取显示样式
+     * 获取样式类名
      */
     public function getStyle(): string
     {
@@ -42,4 +36,22 @@ enum ProcessStatus: string implements Itemable, Labelable, Selectable
             self::COMPLETED => 'success',
         };
     }
-} 
+
+    /**
+     * 获取所有枚举的选项数组（用于下拉列表等）
+     *
+     * @return array<int, array{value: string, label: string}>
+     */
+    public static function toSelectItems(): array
+    {
+        $result = [];
+        foreach (self::cases() as $case) {
+            $result[] = [
+                'value' => $case->value,
+                'label' => $case->getLabel(),
+            ];
+        }
+
+        return $result;
+    }
+}

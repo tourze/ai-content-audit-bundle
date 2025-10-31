@@ -1,0 +1,46 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}内容审核{% endblock %}
+
+{% block main %}
+  <div class="content-audit">
+    <div class="mb-3">
+      <a class="btn btn-secondary btn-sm" href="{{ backUrl }}">返回列表</a>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">基本信息</div>
+      <div class="card-body">
+        <dl class="row">
+          <dt class="col-sm-2">ID</dt>
+          <dd class="col-sm-10">{{ content.id }}</dd>
+          <dt class="col-sm-2">用户</dt>
+          <dd class="col-sm-10">{{ content.user }}</dd>
+          <dt class="col-sm-2">用户输入</dt>
+          <dd class="col-sm-10"><pre class="mb-0">{{ content.inputText }}</pre></dd>
+          <dt class="col-sm-2">AI输出</dt>
+          <dd class="col-sm-10"><pre class="mb-0">{{ content.outputText }}</pre></dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">提交审核结果</div>
+      <div class="card-body">
+        {# 直接提交到当前页，由控制器 audit 方法处理 POST #}
+        <form method="post" action="">
+          <div class="mb-3">
+            <label for="auditResult" class="form-label">审核结果</label>
+            <select class="form-select" id="auditResult" name="auditResult" required>
+              {% for label, value in auditOptions %}
+                <option value="{{ value.value is defined ? value.value : value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary">提交</button>
+          <a class="btn btn-link" href="{{ backUrl }}">取消</a>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

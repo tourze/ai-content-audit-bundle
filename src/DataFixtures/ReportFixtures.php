@@ -7,20 +7,20 @@ namespace AIContentAuditBundle\DataFixtures;
 use AIContentAuditBundle\Entity\GeneratedContent;
 use AIContentAuditBundle\Entity\Report;
 use AIContentAuditBundle\Enum\ProcessStatus;
-use BizUserBundle\DataFixtures\BizUserFixtures;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
-use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Faker\Factory;
-use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\DependencyInjection\Attribute\When;
 
 /**
  * 举报数据填充
  *
  * 创建各种状态的举报测试数据
  */
-class ReportFixtures extends Fixture implements DependentFixtureInterface, FixtureGroupInterface
+#[When(env: 'test')]
+#[When(env: 'dev')]
+class ReportFixtures extends Fixture implements FixtureGroupInterface
 {
     // 常量定义引用名称
     public const REPORT_REFERENCE_PREFIX = 'report-';
@@ -36,13 +36,13 @@ class ReportFixtures extends Fixture implements DependentFixtureInterface, Fixtu
         '举报用户发布的%s相关内容，违反社区准则',
         '该内容疑似%s，请尽快处理',
         '内容中出现"%s"等违规词汇，建议审核',
-        '该回答含有%s要素，不符合平台规定'
+        '该回答含有%s要素，不符合平台规定',
     ];
 
     // 违规类型
     private const VIOLATION_TYPES = [
         '政治敏感', '暴力', '色情', '欺诈', '歧视',
-        '侮辱', '隐私', '版权', '虚假信息', '极端言论'
+        '侮辱', '隐私', '版权', '虚假信息', '极端言论',
     ];
 
     // 处理结果模板
@@ -56,7 +56,7 @@ class ReportFixtures extends Fixture implements DependentFixtureInterface, Fixtu
         '举报不属实，内容符合社区规范',
         '内容在可接受范围内，不予处理',
         '已告知用户注意相关内容的表述',
-        '已对内容进行脱敏处理'
+        '已对内容进行脱敏处理',
     ];
 
     public function load(ObjectManager $manager): void
@@ -64,10 +64,9 @@ class ReportFixtures extends Fixture implements DependentFixtureInterface, Fixtu
         $faker = Factory::create('zh_CN');
 
         // 创建50条举报记录
-        for ($i = 1; $i <= 50; $i++) {
+        for ($i = 1; $i <= 50; ++$i) {
             // 随机选择举报用户（1-20号普通用户）
-            $reporterUserRef = BizUserFixtures::NORMAL_USER_REFERENCE_PREFIX . mt_rand(1, 20);
-            $reporterUser = $this->getReference($reporterUserRef, UserInterface::class);
+            $reporterUserId = 'user-' . mt_rand(1, 20);
 
             // 随机选择被举报内容（1-100号生成内容）
             $contentRef = GeneratedContentFixtures::CONTENT_REFERENCE_PREFIX . mt_rand(1, 100);
@@ -75,7 +74,7 @@ class ReportFixtures extends Fixture implements DependentFixtureInterface, Fixtu
 
             // 创建举报记录
             $report = new Report();
-            $report->setReporterUser($reporterUser->getUserIdentifier());
+            $report->setReporterUser($reporterUserId);
             $report->setReportedContent($content);
 
             // 设置随机举报理由
@@ -107,17 +106,6 @@ class ReportFixtures extends Fixture implements DependentFixtureInterface, Fixtu
         }
 
         $manager->flush();
-    }
-
-    /**
-     * 获取依赖关系
-     */
-    public function getDependencies(): array
-    {
-        return [
-            BizUserFixtures::class,
-            GeneratedContentFixtures::class
-        ];
     }
 
     public static function getGroups(): array

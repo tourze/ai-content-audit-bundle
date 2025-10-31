@@ -1,0 +1,14 @@
+services:
+  # Mock services for testing
+  AIContentAuditBundle\Service\AdminMenu:
+    class: AIContentAuditBundle\Service\AdminMenu
+    arguments:
+      - '@Tourze\EasyAdminMenuBundle\Service\LinkGeneratorInterface'
+
+  AIContentAuditBundle\Service\StatisticsService:
+    class: AIContentAuditBundle\Service\StatisticsService
+    public: true
+
+  AIContentAuditBundle\Service\UserManagementService:
+    class: AIContentAuditBundle\Service\UserManagementService
+    public: true

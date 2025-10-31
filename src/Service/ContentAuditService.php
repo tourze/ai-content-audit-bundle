@@ -1,37 +1,45 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AIContentAuditBundle\Service;
 
 use AIContentAuditBundle\Entity\GeneratedContent;
+use AIContentAuditBundle\Entity\RiskKeyword;
 use AIContentAuditBundle\Entity\ViolationRecord;
 use AIContentAuditBundle\Enum\AuditResult;
 use AIContentAuditBundle\Enum\RiskLevel;
 use AIContentAuditBundle\Enum\ViolationType;
+use AIContentAuditBundle\Repository\GeneratedContentRepository;
 use AIContentAuditBundle\Repository\RiskKeywordRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Monolog\Attribute\WithMonologChannel;
 use Psr\Log\LoggerInterface;
 
 /**
  * 内容审核服务类
  */
-class ContentAuditService
+#[WithMonologChannel(channel: 'ai_content_audit')]
+readonly class ContentAuditService
 {
     public function __construct(
-        private readonly EntityManagerInterface $entityManager,
-        private readonly RiskKeywordRepository $riskKeywordRepository,
-        private readonly LoggerInterface $logger,
+        private EntityManagerInterface $entityManager,
+        private GeneratedContentRepository $generatedContentRepository,
+        private RiskKeywordRepository $riskKeywordRepository,
+        private LoggerInterface $logger,
     ) {
     }
 
     /**
      * 机器审核内容
      *
-     * @param string $inputText 用户输入文本
-     * @param string $outputText AI输出文本
-     * @param int|string $userId 用户ID
+     * @param string     $inputText  用户输入文本
+     * @param string     $outputText AI输出文本
+     * @param int|string $userId     用户ID
+     *
      * @return GeneratedContent 审核后的内容实体
      */
-    public function machineAudit(string $inputText, string $outputText, int|string $userId): GeneratedContent
+    public function machineAudit(string $inputText, string $outputText, mixed $userId): GeneratedContent
     {
         $this->logger->info('开始机器审核内容', [
             'userId' => $userId,
@@ -60,11 +68,11 @@ class ContentAuditService
 
         $this->logger->info('完成机器审核内容', [
             'contentId' => $content->getId(),
-            'riskLevel' => $riskLevel->value
+            'riskLevel' => $riskLevel->value,
         ]);
 
         // 处理高风险内容
-        if ($riskLevel === RiskLevel::HIGH_RISK) {
+        if (RiskLevel::HIGH_RISK === $riskLevel) {
             $this->handleHighRiskContent($content, $userId);
         }
 
@@ -72,11 +80,20 @@ class ContentAuditService
     }
 
     /**
+     * 查找生成内容
+     */
+    public function findGeneratedContent(int $id): ?GeneratedContent
+    {
+        return $this->generatedContentRepository->find($id);
+    }
+
+    /**
      * 人工审核内容
      *
-     * @param GeneratedContent $content 内容
-     * @param AuditResult $auditResult 审核结果（通过、修改、删除等）
-     * @param string $operator 操作人员
+     * @param GeneratedContent $content     内容
+     * @param AuditResult      $auditResult 审核结果（通过、修改、删除等）
+     * @param string           $operator    操作人员
+     *
      * @return GeneratedContent 审核后的内容实体
      */
     public function manualAudit(GeneratedContent $content, AuditResult $auditResult, string $operator): GeneratedContent
@@ -84,7 +101,7 @@ class ContentAuditService
         $this->logger->info('开始人工审核内容', [
             'contentId' => $content->getId(),
             'auditResult' => $auditResult->value,
-            'operator' => $operator
+            'operator' => $operator,
         ]);
 
         // 更新内容的人工审核结果
@@ -110,7 +127,7 @@ class ContentAuditService
 
         $this->logger->info('完成人工审核内容', [
             'contentId' => $content->getId(),
-            'auditResult' => $auditResult->value
+            'auditResult' => $auditResult->value,
         ]);
 
         return $content;
@@ -120,13 +137,13 @@ class ContentAuditService
      * 处理高风险内容
      *
      * @param GeneratedContent $content 内容
-     * @param int|string $userId 用户ID
+     * @param int|string       $userId  用户ID
      */
-    private function handleHighRiskContent(GeneratedContent $content, int|string $userId): void
+    private function handleHighRiskContent(GeneratedContent $content, mixed $userId): void
     {
         $this->logger->warning('处理高风险内容', [
             'contentId' => $content->getId(),
-            'userId' => $userId
+            'userId' => $userId,
         ]);
 
         // 创建违规记录
@@ -141,15 +158,16 @@ class ContentAuditService
         $this->entityManager->flush();
 
         $this->logger->info('高风险内容处理完成', [
-            'violationId' => $violationRecord->getId()
+            'violationId' => $violationRecord->getId(),
         ]);
     }
 
     /**
      * 创建违规记录
      *
-     * @param GeneratedContent $content 内容
-     * @param string $operator 操作人员
+     * @param GeneratedContent $content  内容
+     * @param string           $operator 操作人员
+     *
      * @return ViolationRecord 违规记录实体
      */
     private function createViolationRecord(GeneratedContent $content, string $operator): ViolationRecord
@@ -174,6 +192,7 @@ class ContentAuditService
      * 评估文本的风险等级
      *
      * @param string $text 文本内容
+     *
      * @return RiskLevel 风险等级
      */
     private function evaluateRiskLevel(string $text): RiskLevel
@@ -191,30 +210,35 @@ class ContentAuditService
         // 根据匹配数量判断风险等级
         if ($highRiskMatches > 0) {
             return RiskLevel::HIGH_RISK;
-        } elseif ($mediumRiskMatches > 0) {
-            return RiskLevel::MEDIUM_RISK;
-        } elseif ($lowRiskMatches > 0) {
-            return RiskLevel::LOW_RISK;
-        } else {
-            return RiskLevel::NO_RISK;
         }
+        if ($mediumRiskMatches > 0) {
+            return RiskLevel::MEDIUM_RISK;
+        }
+        if ($lowRiskMatches > 0) {
+            return RiskLevel::LOW_RISK;
+        }
+
+        return RiskLevel::NO_RISK;
     }
 
     /**
      * 统计文本中匹配的关键词数量
      *
-     * @param string $text 文本内容
-     * @param array $keywords 关键词列表
+     * @param string                                             $text     文本内容
+     * @param array<int, RiskKeyword> $keywords 关键词列表
+     *
      * @return int 匹配数量
      */
     private function countKeywordMatches(string $text, array $keywords): int
     {
         $count = 0;
         foreach ($keywords as $keyword) {
-            if (strpos($text, $keyword->getKeyword()) !== false) {
-                $count++;
+            $keywordText = $keyword->getKeyword();
+            if (null !== $keywordText && false !== strpos($text, $keywordText)) {
+                ++$count;
             }
         }
+
         return $count;
     }
 }

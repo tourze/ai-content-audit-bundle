@@ -6,20 +6,20 @@ namespace AIContentAuditBundle\DataFixtures;
 
 use AIContentAuditBundle\Entity\ViolationRecord;
 use AIContentAuditBundle\Enum\ViolationType;
-use BizUserBundle\DataFixtures\BizUserFixtures;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
-use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Faker\Factory;
-use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\DependencyInjection\Attribute\When;
 
 /**
  * 违规记录数据填充
  *
  * 创建各类型的违规记录测试数据
  */
-class ViolationRecordFixtures extends Fixture implements DependentFixtureInterface, FixtureGroupInterface
+#[When(env: 'test')]
+#[When(env: 'dev')]
+class ViolationRecordFixtures extends Fixture implements FixtureGroupInterface
 {
     // 常量定义引用名称
     public const VIOLATION_RECORD_REFERENCE_PREFIX = 'violation-record-';
@@ -35,7 +35,7 @@ class ViolationRecordFixtures extends Fixture implements DependentFixtureInterfa
         '生成内容涉及%s话题，被系统自动拦截',
         '用户试图获取关于%s的信息，违反使用规范',
         '内容模型生成了包含%s的回答，被管理员删除',
-        '审核发现用户多次尝试询问%s相关问题'
+        '审核发现用户多次尝试询问%s相关问题',
     ];
 
     // 违规主题
@@ -43,7 +43,7 @@ class ViolationRecordFixtures extends Fixture implements DependentFixtureInterfa
         '黑客技术', '非法活动', '敏感政治话题', '歧视言论',
         '暴力内容', '不当言论', '成人内容', '侵犯隐私',
         '虚假信息', '极端思想', '欺诈行为', '个人攻击',
-        '版权侵权', '未经授权数据', '恶意软件', '绕过系统限制'
+        '版权侵权', '未经授权数据', '恶意软件', '绕过系统限制',
     ];
 
     // 处理结果模板
@@ -57,12 +57,12 @@ class ViolationRecordFixtures extends Fixture implements DependentFixtureInterfa
         '严重违规，永久禁止使用AI生成功能',
         '内容已修改，移除违规部分',
         '违规情节较轻，用户已被告知规则',
-        '系统自动处理，内容未公开展示'
+        '系统自动处理，内容未公开展示',
     ];
 
     // 处理人员
     private const PROCESSORS = [
-        'admin', 'moderator', 'system', 'ai_audit', 'content_review'
+        'admin', 'moderator', 'system', 'ai_audit', 'content_review',
     ];
 
     public function load(ObjectManager $manager): void
@@ -70,20 +70,19 @@ class ViolationRecordFixtures extends Fixture implements DependentFixtureInterfa
         $faker = Factory::create('zh_CN');
 
         // 创建40条违规记录
-        for ($i = 1; $i <= 10; $i++) {
+        for ($i = 1; $i <= 10; ++$i) {
             // 随机选择用户（有80%是普通用户，20%是重复违规用户）
             if (mt_rand(1, 100) <= 80) {
                 // 随机普通用户
-                $userRef = BizUserFixtures::NORMAL_USER_REFERENCE_PREFIX . mt_rand(1, 20);
+                $userId = 'user-' . mt_rand(1, 20);
             } else {
                 // 违规重复用户（选择1-5号用户）
-                $userRef = BizUserFixtures::NORMAL_USER_REFERENCE_PREFIX . mt_rand(1, 5);
+                $userId = 'user-' . mt_rand(1, 5);
             }
-            $user = $this->getReference($userRef, UserInterface::class);
 
             // 创建违规记录
             $violationRecord = new ViolationRecord();
-            $violationRecord->setUser($user->getUserIdentifier());
+            $violationRecord->setUser($userId);
 
             // 设置违规时间（1到30天内的随机时间）
             $randomDays = mt_rand(1, 30);
@@ -114,7 +113,7 @@ class ViolationRecordFixtures extends Fixture implements DependentFixtureInterfa
             $violationRecord->setProcessTime($processTime);
 
             // 设置处理人员
-            if ($violationType === ViolationType::MACHINE_HIGH_RISK) {
+            if (ViolationType::MACHINE_HIGH_RISK === $violationType) {
                 $violationRecord->setProcessedBy('system');
             } else {
                 $violationRecord->setProcessedBy(self::PROCESSORS[array_rand(self::PROCESSORS)]);
@@ -136,23 +135,15 @@ class ViolationRecordFixtures extends Fixture implements DependentFixtureInterfa
     {
         if ($index <= 16) {
             return ViolationType::MACHINE_HIGH_RISK;
-        } elseif ($index <= 28) {
-            return ViolationType::MANUAL_DELETE;
-        } elseif ($index <= 36) {
-            return ViolationType::USER_REPORT;
-        } else {
-            return ViolationType::REPEATED_VIOLATION;
         }
-    }
+        if ($index <= 28) {
+            return ViolationType::MANUAL_DELETE;
+        }
+        if ($index <= 36) {
+            return ViolationType::USER_REPORT;
+        }
 
-    /**
-     * 获取依赖关系
-     */
-    public function getDependencies(): array
-    {
-        return [
-            BizUserFixtures::class
-        ];
+        return ViolationType::REPEATED_VIOLATION;
     }
 
     public static function getGroups(): array

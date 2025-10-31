@@ -4,27 +4,49 @@ namespace AIContentAuditBundle\Tests\Entity;
 
 use AIContentAuditBundle\Entity\ViolationRecord;
 use AIContentAuditBundle\Enum\ViolationType;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tourze\PHPUnitDoctrineEntity\AbstractEntityTestCase;
 
-class ViolationRecordTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(ViolationRecord::class)]
+final class ViolationRecordTest extends AbstractEntityTestCase
 {
-    private ViolationRecord $violationRecord;
-
-    protected function setUp(): void
+    protected function createEntity(): ViolationRecord
     {
-        $this->violationRecord = new ViolationRecord();
+        return new ViolationRecord();
     }
 
     /**
-     * @dataProvider provideUserData
+     * @return array<string, array{0: string, 1: mixed}>
      */
-    public function testUserAccessors($user): void
+    public static function propertiesProvider(): array
     {
-        $this->violationRecord->setUser($user);
-        $this->assertSame($user, $this->violationRecord->getUser());
+        return [
+            'user' => ['user', 'test_user'],
+            'violationTime' => ['violationTime', new \DateTimeImmutable()],
+            'violationContent' => ['violationContent', 'test content'],
+            'violationType' => ['violationType', ViolationType::MACHINE_HIGH_RISK],
+            'processResult' => ['processResult', 'test result'],
+            'processTime' => ['processTime', new \DateTimeImmutable()],
+            'processedBy' => ['processedBy', 'test_processor'],
+        ];
     }
-    
-    public function provideUserData(): array
+
+    #[DataProvider('provideUserData')]
+    public function testUserAccessors(int|string|null $user): void
+    {
+        $entity = $this->createEntity();
+        $entity->setUser($user);
+        $this->assertSame($user, $entity->getUser());
+    }
+
+    /**
+     * @return array<string, array{0: int|string|null}>
+     */
+    public static function provideUserData(): array
     {
         return [
             'string user id' => ['test_user'],
@@ -33,34 +55,38 @@ class ViolationRecordTest extends TestCase
             'null user' => [null],
         ];
     }
-    
-    /**
-     * @dataProvider provideViolationTimeData
-     */
+
+    #[DataProvider('provideViolationTimeData')]
     public function testViolationTimeAccessors(\DateTimeImmutable $time): void
     {
-        $this->violationRecord->setViolationTime($time);
-        $this->assertEquals($time, $this->violationRecord->getViolationTime());
+        $entity = $this->createEntity();
+        $entity->setViolationTime($time);
+        $this->assertEquals($time, $entity->getViolationTime());
     }
-    
-    public function provideViolationTimeData(): array
+
+    /**
+     * @return array<string, array{0: \DateTimeImmutable}>
+     */
+    public static function provideViolationTimeData(): array
     {
         return [
             'current time' => [new \DateTimeImmutable()],
             'past time' => [new \DateTimeImmutable('-1 day')],
         ];
     }
-    
-    /**
-     * @dataProvider provideViolationContentData
-     */
+
+    #[DataProvider('provideViolationContentData')]
     public function testViolationContentAccessors(string $content): void
     {
-        $this->violationRecord->setViolationContent($content);
-        $this->assertEquals($content, $this->violationRecord->getViolationContent());
+        $entity = $this->createEntity();
+        $entity->setViolationContent($content);
+        $this->assertEquals($content, $entity->getViolationContent());
     }
-    
-    public function provideViolationContentData(): array
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function provideViolationContentData(): array
     {
         return [
             'empty content' => [''],
@@ -69,17 +95,19 @@ class ViolationRecordTest extends TestCase
             'multilanguage content' => ['English 中文 Español'],
         ];
     }
-    
-    /**
-     * @dataProvider provideViolationTypeData
-     */
+
+    #[DataProvider('provideViolationTypeData')]
     public function testViolationTypeAccessors(ViolationType $type): void
     {
-        $this->violationRecord->setViolationType($type);
-        $this->assertEquals($type, $this->violationRecord->getViolationType());
+        $entity = $this->createEntity();
+        $entity->setViolationType($type);
+        $this->assertEquals($type, $entity->getViolationType());
     }
-    
-    public function provideViolationTypeData(): array
+
+    /**
+     * @return array<string, array{0: ViolationType}>
+     */
+    public static function provideViolationTypeData(): array
     {
         return [
             'machine high risk' => [ViolationType::MACHINE_HIGH_RISK],
@@ -88,17 +116,19 @@ class ViolationRecordTest extends TestCase
             'repeated violation' => [ViolationType::REPEATED_VIOLATION],
         ];
     }
-    
-    /**
-     * @dataProvider provideProcessResultData
-     */
+
+    #[DataProvider('provideProcessResultData')]
     public function testProcessResultAccessors(string $result): void
     {
-        $this->violationRecord->setProcessResult($result);
-        $this->assertEquals($result, $this->violationRecord->getProcessResult());
+        $entity = $this->createEntity();
+        $entity->setProcessResult($result);
+        $this->assertEquals($result, $entity->getProcessResult());
     }
-    
-    public function provideProcessResultData(): array
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function provideProcessResultData(): array
     {
         return [
             'empty result' => [''],
@@ -107,34 +137,38 @@ class ViolationRecordTest extends TestCase
             'account disabled' => ['账号已禁用'],
         ];
     }
-    
-    /**
-     * @dataProvider provideProcessTimeData
-     */
+
+    #[DataProvider('provideProcessTimeData')]
     public function testProcessTimeAccessors(\DateTimeImmutable $time): void
     {
-        $this->violationRecord->setProcessTime($time);
-        $this->assertEquals($time, $this->violationRecord->getProcessTime());
+        $entity = $this->createEntity();
+        $entity->setProcessTime($time);
+        $this->assertEquals($time, $entity->getProcessTime());
     }
-    
-    public function provideProcessTimeData(): array
+
+    /**
+     * @return array<string, array{0: \DateTimeImmutable}>
+     */
+    public static function provideProcessTimeData(): array
     {
         return [
             'current time' => [new \DateTimeImmutable()],
             'past time' => [new \DateTimeImmutable('-1 hour')],
         ];
     }
-    
-    /**
-     * @dataProvider provideProcessedByData
-     */
+
+    #[DataProvider('provideProcessedByData')]
     public function testProcessedByAccessors(string $processor): void
     {
-        $this->violationRecord->setProcessedBy($processor);
-        $this->assertEquals($processor, $this->violationRecord->getProcessedBy());
+        $entity = $this->createEntity();
+        $entity->setProcessedBy($processor);
+        $this->assertEquals($processor, $entity->getProcessedBy());
     }
-    
-    public function provideProcessedByData(): array
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function provideProcessedByData(): array
     {
         return [
             'admin user' => ['admin'],
@@ -142,31 +176,31 @@ class ViolationRecordTest extends TestCase
             'moderator' => ['moderator1'],
         ];
     }
-    
+
     public function testConstructor(): void
     {
         $violationRecord = new ViolationRecord();
-        
+
         $this->assertInstanceOf(\DateTimeImmutable::class, $violationRecord->getViolationTime());
         $this->assertInstanceOf(\DateTimeImmutable::class, $violationRecord->getProcessTime());
     }
-    
+
     public function testToString(): void
     {
         $violationRecord = new ViolationRecord();
         $violationRecord->setUser('test_user_789');
         $violationRecord->setViolationType(ViolationType::MANUAL_DELETE);
-        
+
         // 反射设置ID
         $reflectionClass = new \ReflectionClass($violationRecord);
         $idProperty = $reflectionClass->getProperty('id');
         $idProperty->setAccessible(true);
         $idProperty->setValue($violationRecord, 123);
-        
+
         // 只测试字符串转换方法被调用不会报错
-        $stringResult = (string)$violationRecord;
+        $stringResult = (string) $violationRecord;
         $this->assertStringContainsString('123', $stringResult);
         $this->assertStringContainsString('人工审核删除', $stringResult);
         $this->assertStringContainsString('test_user_789', $stringResult);
     }
-} 
+}

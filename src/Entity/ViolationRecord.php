@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AIContentAuditBundle\Entity;
 
 use AIContentAuditBundle\Enum\ViolationType;
 use AIContentAuditBundle\Repository\ViolationRecordRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ViolationRecordRepository::class)]
 #[ORM\Table(name: 'ims_ai_audit_violation_record', options: ['comment' => '违规记录表'])]
@@ -17,24 +20,36 @@ class ViolationRecord implements \Stringable
     private ?int $id = null;
 
     #[ORM\Column(type: Types::STRING, length: 255, nullable: false, options: ['comment' => '违规用户ID'])]
-    private int|string|null $user = null;
+    #[Assert\NotBlank(message: '违规用户ID不能为空')]
+    #[Assert\Length(max: 255, maxMessage: '违规用户ID长度不能超过255个字符')]
+    private mixed $user = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, options: ['comment' => '违规时间'])]
+    #[Assert\NotNull(message: '违规时间不能为空')]
     private ?\DateTimeImmutable $violationTime = null;
 
     #[ORM\Column(type: Types::TEXT, options: ['comment' => '违规内容'])]
+    #[Assert\NotBlank(message: '违规内容不能为空')]
+    #[Assert\Length(max: 65535, maxMessage: '违规内容长度不能超过65535个字符')]
     private ?string $violationContent = null;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: ViolationType::class, options: ['comment' => '违规类型'])]
+    #[Assert\NotNull(message: '违规类型不能为空')]
+    #[Assert\Choice(callback: [ViolationType::class, 'cases'], message: '违规类型必须是有效的违规类型')]
     private ?ViolationType $violationType = null;
 
     #[ORM\Column(type: Types::TEXT, options: ['comment' => '处理结果（如删除内容、标记用户、封号等）'])]
+    #[Assert\NotBlank(message: '处理结果不能为空')]
+    #[Assert\Length(max: 65535, maxMessage: '处理结果长度不能超过65535个字符')]
     private ?string $processResult = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, options: ['comment' => '处理时间'])]
+    #[Assert\NotNull(message: '处理时间不能为空')]
     private ?\DateTimeImmutable $processTime = null;
 
     #[ORM\Column(length: 255, options: ['comment' => '处理人员'])]
+    #[Assert\NotBlank(message: '处理人员不能为空')]
+    #[Assert\Length(max: 255, maxMessage: '处理人员长度不能超过255个字符')]
     private ?string $processedBy = null;
 
     public function __construct()
@@ -45,9 +60,12 @@ class ViolationRecord implements \Stringable
 
     public function __toString(): string
     {
+        $userId = $this->user;
+        $userDisplay = is_string($userId) || is_int($userId) ? (string) $userId : 'unknown';
+
         return sprintf('违规ID:%d - 用户:%s - 类型:%s',
             $this->id ?? 0,
-            $this->user ?? 'unknown',
+            $userDisplay,
             $this->violationType?->getLabel() ?? '未知'
         );
     }
@@ -57,16 +75,25 @@ class ViolationRecord implements \Stringable
         return $this->id;
     }
 
-    public function getUser(): int|string|null
+    /**
+     * @return string|int|null
+     */
+    public function getUser(): string|int|null
     {
-        return $this->user;
+        // 确保返回值符合声明的类型
+        if (is_string($this->user) || is_int($this->user)) {
+            return $this->user;
+        }
+
+        return null;
     }
 
-    public function setUser(int|string|null $user): static
+    /**
+     * @param string|int|null $user
+     */
+    public function setUser(mixed $user): void
     {
         $this->user = $user;
-
-        return $this;
     }
 
     public function getViolationTime(): ?\DateTimeImmutable
@@ -74,11 +101,9 @@ class ViolationRecord implements \Stringable
         return $this->violationTime;
     }
 
-    public function setViolationTime(\DateTimeImmutable $violationTime): static
+    public function setViolationTime(\DateTimeImmutable $violationTime): void
     {
         $this->violationTime = $violationTime;
-
-        return $this;
     }
 
     public function getViolationContent(): ?string
@@ -86,11 +111,9 @@ class ViolationRecord implements \Stringable
         return $this->violationContent;
     }
 
-    public function setViolationContent(string $violationContent): static
+    public function setViolationContent(string $violationContent): void
     {
         $this->violationContent = $violationContent;
-
-        return $this;
     }
 
     public function getViolationType(): ?ViolationType
@@ -98,11 +121,9 @@ class ViolationRecord implements \Stringable
         return $this->violationType;
     }
 
-    public function setViolationType(ViolationType $violationType): static
+    public function setViolationType(ViolationType $violationType): void
     {
         $this->violationType = $violationType;
-
-        return $this;
     }
 
     public function getProcessResult(): ?string
@@ -110,11 +131,9 @@ class ViolationRecord implements \Stringable
         return $this->processResult;
     }
 
-    public function setProcessResult(string $processResult): static
+    public function setProcessResult(string $processResult): void
     {
         $this->processResult = $processResult;
-
-        return $this;
     }
 
     public function getProcessTime(): ?\DateTimeImmutable
@@ -122,11 +141,9 @@ class ViolationRecord implements \Stringable
         return $this->processTime;
     }
 
-    public function setProcessTime(\DateTimeImmutable $processTime): static
+    public function setProcessTime(\DateTimeImmutable $processTime): void
     {
         $this->processTime = $processTime;
-
-        return $this;
     }
 
     public function getProcessedBy(): ?string
@@ -134,10 +151,8 @@ class ViolationRecord implements \Stringable
         return $this->processedBy;
     }
 
-    public function setProcessedBy(string $processedBy): static
+    public function setProcessedBy(string $processedBy): void
     {
         $this->processedBy = $processedBy;
-
-        return $this;
     }
 }

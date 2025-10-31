@@ -6,188 +6,103 @@ use AIContentAuditBundle\Entity\GeneratedContent;
 use AIContentAuditBundle\Entity\Report;
 use AIContentAuditBundle\Enum\AuditResult;
 use AIContentAuditBundle\Enum\RiskLevel;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use Tourze\PHPUnitDoctrineEntity\AbstractEntityTestCase;
 
-class GeneratedContentTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(GeneratedContent::class)]
+final class GeneratedContentTest extends AbstractEntityTestCase
 {
-    private GeneratedContent $generatedContent;
-
-    protected function setUp(): void
-    {
-        $this->generatedContent = new GeneratedContent();
-    }
-
-    /**
-     * @dataProvider provideUserData
-     */
-    public function testUserAccessors($user): void
-    {
-        $this->generatedContent->setUser($user);
-        $this->assertSame($user, $this->generatedContent->getUser());
-    }
-    
-    public function provideUserData(): array
-    {
-        return [
-            'string user id' => ['test_user'],
-            'numeric string user id' => ['123'],
-            'integer user id' => [456],
-            'null user' => [null],
-        ];
-    }
-    
-    /**
-     * @dataProvider provideTextData
-     */
-    public function testInputTextAccessors(string $text): void
-    {
-        $this->generatedContent->setInputText($text);
-        $this->assertEquals($text, $this->generatedContent->getInputText());
-    }
-    
-    /**
-     * @dataProvider provideTextData
-     */
-    public function testOutputTextAccessors(string $text): void
-    {
-        $this->generatedContent->setOutputText($text);
-        $this->assertEquals($text, $this->generatedContent->getOutputText());
-    }
-    
-    public function provideTextData(): array
-    {
-        return [
-            'empty string' => [''],
-            'simple text' => ['Hello world'],
-            'text with special chars' => ['Hello, 你好! Special chars: !@#$%^&*()'],
-            'multiline text' => ["Line 1\nLine 2\nLine 3"],
-        ];
-    }
-    
-    /**
-     * @dataProvider provideMachineAuditResultData
-     */
-    public function testMachineAuditResultAccessors(RiskLevel $riskLevel): void
-    {
-        $this->generatedContent->setMachineAuditResult($riskLevel);
-        $this->assertEquals($riskLevel, $this->generatedContent->getMachineAuditResult());
-    }
-    
-    public function provideMachineAuditResultData(): array
-    {
-        return [
-            'no risk' => [RiskLevel::NO_RISK],
-            'low risk' => [RiskLevel::LOW_RISK],
-            'medium risk' => [RiskLevel::MEDIUM_RISK],
-            'high risk' => [RiskLevel::HIGH_RISK],
-        ];
-    }
-    
-    public function testMachineAuditTimeAccessors(): void
-    {
-        $now = new \DateTimeImmutable();
-        $this->generatedContent->setMachineAuditTime($now);
-        $this->assertEquals($now, $this->generatedContent->getMachineAuditTime());
-    }
-    
-    /**
-     * @dataProvider provideManualAuditResultData
-     */
-    public function testManualAuditResultAccessors(?AuditResult $auditResult): void
-    {
-        $this->generatedContent->setManualAuditResult($auditResult);
-        $this->assertEquals($auditResult, $this->generatedContent->getManualAuditResult());
-    }
-    
-    public function provideManualAuditResultData(): array
-    {
-        return [
-            'null result' => [null],
-            'pass result' => [AuditResult::PASS],
-            'modify result' => [AuditResult::MODIFY],
-            'delete result' => [AuditResult::DELETE],
-        ];
-    }
-    
-    /**
-     * @dataProvider provideManualAuditTimeData
-     */
-    public function testManualAuditTimeAccessors(?\DateTimeImmutable $time): void
-    {
-        $this->generatedContent->setManualAuditTime($time);
-        $this->assertEquals($time, $this->generatedContent->getManualAuditTime());
-    }
-    
-    public function provideManualAuditTimeData(): array
-    {
-        return [
-            'null time' => [null],
-            'current time' => [new \DateTimeImmutable()],
-        ];
-    }
-    
     public function testReportsCollection(): void
     {
+        $entity = $this->createEntity();
         $report1 = new Report();
         $report2 = new Report();
-        
+
         // 初始状态下，reports集合应该为空
-        $this->assertCount(0, $this->generatedContent->getReports());
-        
+        $this->assertCount(0, $entity->getReports());
+
         // 添加第一个报告
-        $this->generatedContent->addReport($report1);
-        $this->assertCount(1, $this->generatedContent->getReports());
-        $this->assertTrue($this->generatedContent->getReports()->contains($report1));
-        
+        $entity->addReport($report1);
+        $this->assertCount(1, $entity->getReports());
+        $this->assertTrue($entity->getReports()->contains($report1));
+
         // 添加第二个报告
-        $this->generatedContent->addReport($report2);
-        $this->assertCount(2, $this->generatedContent->getReports());
-        $this->assertTrue($this->generatedContent->getReports()->contains($report2));
-        
+        $entity->addReport($report2);
+        $this->assertCount(2, $entity->getReports());
+        $this->assertTrue($entity->getReports()->contains($report2));
+
         // 添加重复报告不应增加集合大小
-        $this->generatedContent->addReport($report1);
-        $this->assertCount(2, $this->generatedContent->getReports());
-        
+        $entity->addReport($report1);
+        $this->assertCount(2, $entity->getReports());
+
         // 移除报告
-        $this->generatedContent->removeReport($report1);
-        $this->assertCount(1, $this->generatedContent->getReports());
-        $this->assertFalse($this->generatedContent->getReports()->contains($report1));
-        $this->assertTrue($this->generatedContent->getReports()->contains($report2));
+        $entity->removeReport($report1);
+        $this->assertCount(1, $entity->getReports());
+        $this->assertFalse($entity->getReports()->contains($report1));
+        $this->assertTrue($entity->getReports()->contains($report2));
     }
-    
-    public function testNeedsManualAudit_returnsTrueForMediumRiskWithoutManualAudit(): void
+
+    public function testNeedsManualAuditReturnsTrueForMediumRiskWithoutManualAudit(): void
     {
-        $this->generatedContent->setMachineAuditResult(RiskLevel::MEDIUM_RISK);
-        $this->generatedContent->setManualAuditResult(null);
-        
-        $this->assertTrue($this->generatedContent->needsManualAudit());
+        $entity = $this->createEntity();
+        $entity->setMachineAuditResult(RiskLevel::MEDIUM_RISK);
+        $entity->setManualAuditResult(null);
+
+        $this->assertTrue($entity->needsManualAudit());
     }
-    
-    public function testNeedsManualAudit_returnsFalseForMediumRiskWithManualAudit(): void
+
+    public function testNeedsManualAuditReturnsFalseForMediumRiskWithManualAudit(): void
     {
-        $this->generatedContent->setMachineAuditResult(RiskLevel::MEDIUM_RISK);
-        $this->generatedContent->setManualAuditResult(AuditResult::PASS);
-        
-        $this->assertFalse($this->generatedContent->needsManualAudit());
+        $entity = $this->createEntity();
+        $entity->setMachineAuditResult(RiskLevel::MEDIUM_RISK);
+        $entity->setManualAuditResult(AuditResult::PASS);
+
+        $this->assertFalse($entity->needsManualAudit());
     }
-    
-    public function testNeedsManualAudit_returnsFalseForNonMediumRisk(): void
+
+    public function testNeedsManualAuditReturnsFalseForNonMediumRisk(): void
     {
-        $this->generatedContent->setMachineAuditResult(RiskLevel::LOW_RISK);
-        $this->generatedContent->setManualAuditResult(null);
-        
-        $this->assertFalse($this->generatedContent->needsManualAudit());
-        
-        $this->generatedContent->setMachineAuditResult(RiskLevel::HIGH_RISK);
-        $this->assertFalse($this->generatedContent->needsManualAudit());
+        $entity = $this->createEntity();
+        $entity->setMachineAuditResult(RiskLevel::LOW_RISK);
+        $entity->setManualAuditResult(null);
+
+        $this->assertFalse($entity->needsManualAudit());
+
+        $entity->setMachineAuditResult(RiskLevel::HIGH_RISK);
+        $this->assertFalse($entity->needsManualAudit());
     }
-    
+
     public function testToString(): void
     {
-        $this->generatedContent->setInputText('This is a test input that is longer than thirty characters.');
-        $this->assertEquals('This is a test input that is l...', (string)$this->generatedContent);
-        
-        $this->generatedContent->setInputText('Short text');
-        $this->assertEquals('Short text...', (string)$this->generatedContent);
+        $entity = $this->createEntity();
+        $entity->setInputText('This is a test input that is longer than thirty characters.');
+        $this->assertEquals('This is a test input that is l...', (string) $entity);
+
+        $entity->setInputText('Short text');
+        $this->assertEquals('Short text...', (string) $entity);
     }
-} 
+
+    protected function createEntity(): GeneratedContent
+    {
+        return new GeneratedContent();
+    }
+
+    /**
+     * @return array<string, array{0: string, 1: mixed}>
+     */
+    public static function propertiesProvider(): array
+    {
+        return [
+            'user' => ['user', 'test_user'],
+            'inputText' => ['inputText', 'Test input text'],
+            'outputText' => ['outputText', 'Test output text'],
+            'machineAuditResult' => ['machineAuditResult', RiskLevel::NO_RISK],
+            'machineAuditTime' => ['machineAuditTime', new \DateTimeImmutable()],
+            'manualAuditResult' => ['manualAuditResult', AuditResult::PASS],
+            'manualAuditTime' => ['manualAuditTime', new \DateTimeImmutable()],
+        ];
+    }
+}

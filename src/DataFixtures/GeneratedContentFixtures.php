@@ -8,20 +8,21 @@ use AIContentAuditBundle\Entity\GeneratedContent;
 use AIContentAuditBundle\Entity\RiskKeyword;
 use AIContentAuditBundle\Enum\AuditResult;
 use AIContentAuditBundle\Enum\RiskLevel;
-use BizUserBundle\DataFixtures\BizUserFixtures;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
-use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Faker\Factory;
-use Symfony\Component\Security\Core\User\UserInterface;
+use Faker\Generator;
+use Symfony\Component\DependencyInjection\Attribute\When;
 
 /**
  * 生成内容数据填充
  *
  * 创建AI生成内容测试数据，模拟各种风险等级和审核状态
  */
-class GeneratedContentFixtures extends Fixture implements DependentFixtureInterface, FixtureGroupInterface
+#[When(env: 'test')]
+#[When(env: 'dev')]
+class GeneratedContentFixtures extends Fixture implements FixtureGroupInterface
 {
     // 生成内容引用常量
     public const CONTENT_REFERENCE_PREFIX = 'generated-content-';
@@ -37,7 +38,7 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
         '分析一下%s的优缺点',
         '请对%s做一个全面的介绍',
         '我需要一份关于%s的报告',
-        '%s是什么？请详细解释'
+        '%s是什么？请详细解释',
     ];
 
     // 常见话题
@@ -49,7 +50,7 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
         '健康生活', '营养学', '心理健康', '运动科学',
         '历史事件', '文化差异', '艺术欣赏', '音乐理论',
         '经济学', '投资策略', '创业指南', '职业发展',
-        '烹饪技巧', '旅行目的地', '摄影技术', '时尚设计'
+        '烹饪技巧', '旅行目的地', '摄影技术', '时尚设计',
     ];
 
     // 敏感话题（用于生成高中风险内容）
@@ -57,7 +58,7 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
         '黑客技术', '投机赚钱', '灰色产业', '规避监管',
         '个人隐私', '政治立场', '宗教冲突', '种族问题',
         '武器制造', '极端思想', '地下交易', '避税方法',
-        '激进言论', '社会矛盾', '暴力内容', '成人话题'
+        '激进言论', '社会矛盾', '暴力内容', '成人话题',
     ];
 
     public function load(ObjectManager $manager): void
@@ -65,10 +66,10 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
         $faker = Factory::create('zh_CN');
 
         // 创建100条内容记录
-        for ($i = 1; $i <= 100; $i++) {
-            // 随机选择用户（用户ID范围1-20）
-            $userRef = BizUserFixtures::NORMAL_USER_REFERENCE_PREFIX . mt_rand(1, 20);
-            $user = $this->getReference($userRef, UserInterface::class);
+        for ($i = 1; $i <= 100; ++$i) {
+            // 直接生成用户标识符，不依赖外部fixtures
+            $userId = 'user-' . mt_rand(1, 10);
+            $userEmail = 'user' . mt_rand(1, 10) . '@test.local';
 
             // 决定风险等级
             $riskLevel = $this->getRandomRiskLevel($i);
@@ -78,7 +79,7 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
 
             // 创建生成内容实体
             $content = new GeneratedContent();
-            $content->setUser($user->getUserIdentifier());
+            $content->setUser($userId);
             $content->setInputText($inputText);
             $content->setOutputText($outputText);
             $content->setMachineAuditResult($riskLevel);
@@ -89,7 +90,7 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
             $content->setMachineAuditTime($machineAuditTime);
 
             // 如果是中风险内容，有50%概率已经人工审核
-            if ($riskLevel === RiskLevel::MEDIUM_RISK && mt_rand(0, 1) === 1) {
+            if (RiskLevel::MEDIUM_RISK === $riskLevel && 1 === mt_rand(0, 1)) {
                 $manualAuditResult = $this->getRandomManualAuditResult();
                 $content->setManualAuditResult($manualAuditResult);
 
@@ -99,7 +100,7 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
             }
 
             // 高风险内容自动审核为删除
-            if ($riskLevel === RiskLevel::HIGH_RISK) {
+            if (RiskLevel::HIGH_RISK === $riskLevel) {
                 $content->setManualAuditResult(AuditResult::DELETE);
                 $content->setManualAuditTime($machineAuditTime->modify('+1 hour'));
             }
@@ -112,17 +113,6 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
     }
 
     /**
-     * 获取依赖关系
-     */
-    public function getDependencies(): array
-    {
-        return [
-            BizUserFixtures::class,
-            RiskKeywordFixtures::class
-        ];
-    }
-
-    /**
      * 根据索引获取随机风险等级
      */
     private function getRandomRiskLevel(int $index): RiskLevel
@@ -130,13 +120,15 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
         // 通过索引控制风险分布：70%无风险，15%低风险，10%中风险，5%高风险
         if ($index <= 70) {
             return RiskLevel::NO_RISK;
-        } elseif ($index <= 85) {
-            return RiskLevel::LOW_RISK;
-        } elseif ($index <= 95) {
-            return RiskLevel::MEDIUM_RISK;
-        } else {
-            return RiskLevel::HIGH_RISK;
         }
+        if ($index <= 85) {
+            return RiskLevel::LOW_RISK;
+        }
+        if ($index <= 95) {
+            return RiskLevel::MEDIUM_RISK;
+        }
+
+        return RiskLevel::HIGH_RISK;
     }
 
     /**
@@ -149,22 +141,24 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
         // 通过概率分布：通过60%，修改30%，删除10%
         if ($rand <= 6) {
             return AuditResult::PASS;
-        } elseif ($rand <= 9) {
-            return AuditResult::MODIFY;
-        } else {
-            return AuditResult::DELETE;
         }
+        if ($rand <= 9) {
+            return AuditResult::MODIFY;
+        }
+
+        return AuditResult::DELETE;
     }
 
     /**
      * 生成内容文本
+     * @return array{0: string, 1: string}
      */
-    private function generateContent(RiskLevel $riskLevel, \Faker\Generator $faker): array
+    private function generateContent(RiskLevel $riskLevel, Generator $faker): array
     {
         // 根据风险等级选择话题
         $topic = match ($riskLevel) {
             RiskLevel::HIGH_RISK, RiskLevel::MEDIUM_RISK => self::SENSITIVE_TOPICS[array_rand(self::SENSITIVE_TOPICS)],
-            default => self::TOPICS[array_rand(self::TOPICS)]
+            default => self::TOPICS[array_rand(self::TOPICS)],
         };
 
         // 生成输入提示
@@ -173,10 +167,10 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
 
         // 生成输出文本
         $paragraphs = $faker->paragraphs(mt_rand(3, 8));
-        $outputText = implode("\n\n", $paragraphs);
+        $outputText = implode("\n\n", is_array($paragraphs) ? $paragraphs : [$paragraphs]);
 
         // 对于中高风险内容，插入关键词
-        if ($riskLevel === RiskLevel::MEDIUM_RISK || $riskLevel === RiskLevel::HIGH_RISK) {
+        if (RiskLevel::MEDIUM_RISK === $riskLevel || RiskLevel::HIGH_RISK === $riskLevel) {
             // 获取相应风险等级的关键词
             $keywordIndices = range(1, 20); // 假设每个风险等级有20个关键词
             shuffle($keywordIndices);
@@ -188,12 +182,15 @@ class GeneratedContentFixtures extends Fixture implements DependentFixtureInterf
             };
 
             try {
-                    $keyword = $this->getReference($keywordReference, RiskKeyword::class);
-                    // 在输出文本中插入关键词
-                    $position = mt_rand(0, mb_strlen($outputText) - mb_strlen($keyword->getKeyword()));
+                $keyword = $this->getReference($keywordReference, RiskKeyword::class);
+                // 在输出文本中插入关键词
+                $keywordText = $keyword->getKeyword();
+                if (null !== $keywordText) {
+                    $position = mt_rand(0, mb_strlen($outputText) - mb_strlen($keywordText));
                     $outputText = mb_substr($outputText, 0, $position) .
-                        $keyword->getKeyword() .
+                        $keywordText .
                         mb_substr($outputText, $position);
+                }
             } catch (\Throwable $e) {
                 // 如果获取引用失败，不插入关键词
             }

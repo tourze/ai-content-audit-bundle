@@ -2,322 +2,203 @@
 
 namespace AIContentAuditBundle\Tests\Service;
 
-use AIContentAuditBundle\Entity\ViolationRecord;
 use AIContentAuditBundle\Enum\ViolationType;
 use AIContentAuditBundle\Repository\ViolationRecordRepository;
 use AIContentAuditBundle\Service\UserManagementService;
-use Doctrine\ORM\EntityManagerInterface;
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractIntegrationTestCase;
 
-class UserManagementServiceTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(UserManagementService::class)]
+#[RunTestsInSeparateProcesses]
+final class UserManagementServiceTest extends AbstractIntegrationTestCase
 {
     private UserManagementService $service;
-    private MockObject $entityManager;
-    private MockObject $violationRecordRepository;
-    private MockObject $logger;
 
-    protected function setUp(): void
+    private ViolationRecordRepository $violationRecordRepository;
+
+    protected function onSetUp(): void
     {
-        $this->entityManager = $this->createMock(EntityManagerInterface::class);
-        $this->violationRecordRepository = $this->createMock(ViolationRecordRepository::class);
-        $this->logger = $this->createMock(LoggerInterface::class);
-        
-        // 设置EntityManager返回Repository
-        $this->entityManager->method('getRepository')
-            ->with(ViolationRecord::class)
-            ->willReturn($this->violationRecordRepository);
-        
-        $this->service = new UserManagementService(
-            $this->entityManager,
-            $this->violationRecordRepository,
-            $this->logger
-        );
+        $this->service = self::getService(UserManagementService::class);
+        $this->violationRecordRepository = self::getService(ViolationRecordRepository::class);
     }
-    
-    public function testDisableUser()
+
+    public function testServiceExists(): void
     {
-        $reason = '多次违规发布不当内容';
-        $operator = 'admin';
-        
-        // 设置logger期望 - 应该记录警告和信息日志
-        $this->logger->expects($this->once())
-            ->method('warning')
-            ->with('禁用用户账号', [
-                'userId' => 'test_user',
-                'reason' => $reason,
-                'operator' => $operator
-            ]);
-            
-        $this->logger->expects($this->once())
-            ->method('info')
-            ->with('用户账号已禁用', $this->callback(function ($context) {
-                // 在测试环境中，violationId可能为null，因为实体还没有真正保存
-                return $context['userId'] === 'test_user' && array_key_exists('violationId', $context);
-            }));
-            
-        // 设置entityManager期望
-        $this->entityManager->expects($this->once())
-            ->method('persist')
-            ->with($this->callback(function ($record) use ($reason, $operator) {
-                return $record instanceof ViolationRecord
-                    && $record->getViolationContent() === $reason
-                    && $record->getViolationType() === ViolationType::REPEATED_VIOLATION
-                    && $record->getProcessResult() === '账号已禁用'
-                    && $record->getProcessedBy() === $operator;
-            }));
-            
-        $this->entityManager->expects($this->once())
-            ->method('flush');
-            
-        // 执行方法
-        $this->service->disableUser('test_user', $reason, $operator);
-        
-        // 添加断言以避免 risky test
-        $this->assertTrue(true, '测试成功执行，所有 mock expectations 已验证');
+        // 验证服务可以正确获取
+        $this->assertInstanceOf(UserManagementService::class, $this->service);
     }
-    
-    public function testEnableUser()
+
+    public function testDisableUser(): void
     {
+        $userId = 'test_user_123';
+        $reason = '违规发布内容';
+        $operator = 'admin_001';
+
+        // 执行禁用用户操作
+        $this->service->disableUser($userId, $reason, $operator);
+
+        // 验证违规记录是否正确创建
+        $violationRecords = $this->violationRecordRepository
+            ->findBy(['user' => $userId])
+        ;
+
+        $this->assertNotEmpty($violationRecords);
+        $record = $violationRecords[0];
+
+        $this->assertEquals($userId, $record->getUser());
+        $this->assertEquals($reason, $record->getViolationContent());
+        $this->assertEquals(ViolationType::REPEATED_VIOLATION, $record->getViolationType());
+        $this->assertEquals('账号已禁用', $record->getProcessResult());
+        $this->assertEquals($operator, $record->getProcessedBy());
+        $this->assertNotNull($record->getId());
+    }
+
+    public function testEnableUser(): void
+    {
+        $userId = 'test_user_456';
         $reason = '申诉成功，恢复账号';
-        $operator = 'admin';
-        
-        // 设置logger期望 - 应该记录两次信息日志
-        $this->logger->expects($this->exactly(2))
-            ->method('info');
-            
-        // 设置entityManager期望
-        $this->entityManager->expects($this->once())
-            ->method('persist')
-            ->with($this->callback(function ($record) use ($reason, $operator) {
-                return $record instanceof ViolationRecord
-                    && $record->getViolationContent() === '账号解禁: ' . $reason
-                    && $record->getViolationType() === ViolationType::USER_REPORT
-                    && $record->getProcessResult() === '账号已恢复正常'
-                    && $record->getProcessedBy() === $operator;
-            }));
-            
-        $this->entityManager->expects($this->once())
-            ->method('flush');
-            
-        // 执行方法
-        $this->service->enableUser('test_user', $reason, $operator);
+        $operator = 'admin_002';
+
+        // 执行解禁用户操作
+        $this->service->enableUser($userId, $reason, $operator);
+
+        // 验证解禁记录是否正确创建
+        $violationRecords = $this->violationRecordRepository
+            ->findBy(['user' => $userId])
+        ;
+
+        $this->assertNotEmpty($violationRecords);
+        $record = $violationRecords[0];
+
+        $this->assertEquals($userId, $record->getUser());
+        $this->assertEquals('账号解禁: ' . $reason, $record->getViolationContent());
+        $this->assertEquals(ViolationType::USER_REPORT, $record->getViolationType());
+        $this->assertEquals('账号已恢复正常', $record->getProcessResult());
+        $this->assertEquals($operator, $record->getProcessedBy());
+        $this->assertNotNull($record->getId());
     }
-    
-    public function testReviewAppeal_withApprovedResult()
+
+    public function testReviewAppeal(): void
     {
-        $appealContent = '我认为我的内容没有违规';
+        $userId = 'test_user_789';
+        $appealContent = '我的内容是正当的，请求恢复';
         $approved = true;
-        $result = '申诉成功，恢复内容';
-        $operator = 'admin';
-        
-        // 设置logger期望
-        $this->logger->expects($this->once())
-            ->method('info')
-            ->with('开始复核用户申诉', [
-                'userId' => 'test_user',
-                'approved' => true,
-                'operator' => $operator
-            ]);
-            
-        // 设置entityManager期望
-        $this->entityManager->expects($this->once())
-            ->method('persist')
-            ->with($this->callback(function ($record) use ($appealContent, $result, $operator) {
-                return $record instanceof ViolationRecord
-                    && $record->getViolationContent() === '用户申诉: ' . $appealContent
-                    && $record->getViolationType() === ViolationType::MANUAL_DELETE
-                    && $record->getProcessResult() === $result
-                    && $record->getProcessedBy() === $operator;
-            }));
-            
-        $this->entityManager->expects($this->once())
-            ->method('flush');
-            
-        // 执行方法
-        $this->service->reviewAppeal('test_user', $appealContent, $approved, $result, $operator);
-        
-        // 添加断言以避免 risky test
-        $this->assertTrue(true, '测试成功执行，申诉审核已正确处理');
+        $result = '申诉通过，恢复正常';
+        $operator = 'admin_003';
+
+        // 执行申诉复核操作
+        $this->service->reviewAppeal($userId, $appealContent, $approved, $result, $operator);
+
+        // 验证申诉记录是否正确创建
+        $violationRecords = $this->violationRecordRepository
+            ->findBy(['user' => $userId])
+        ;
+
+        $this->assertNotEmpty($violationRecords);
+        $record = $violationRecords[0];
+
+        $this->assertEquals($userId, $record->getUser());
+        $this->assertEquals('用户申诉: ' . $appealContent, $record->getViolationContent());
+        $this->assertEquals(ViolationType::MANUAL_DELETE, $record->getViolationType());
+        $this->assertEquals($result, $record->getProcessResult());
+        $this->assertEquals($operator, $record->getProcessedBy());
+        $this->assertNotNull($record->getId());
     }
-    
-    public function testReviewAppeal_withRejectedResult()
+
+    public function testReviewAppealRejected(): void
     {
-        $appealContent = '我认为处罚过重';
+        $userId = 'test_user_rejected';
+        $appealContent = '请求恢复账号';
         $approved = false;
-        $result = '申诉被驳回，维持原处罚';
-        $operator = 'admin';
-        
-        // 设置logger期望
-        $this->logger->expects($this->once())
-            ->method('info')
-            ->with('开始复核用户申诉', [
-                'userId' => 'test_user',
-                'approved' => false,
-                'operator' => $operator
-            ]);
-            
-        // 设置entityManager期望
-        $this->entityManager->expects($this->once())
-            ->method('persist');
-            
-        $this->entityManager->expects($this->once())
-            ->method('flush');
-            
-        // 执行方法
-        $this->service->reviewAppeal('test_user', $appealContent, $approved, $result, $operator);
-        
-        // 添加断言以避免 risky test
-        $this->assertTrue(true, '测试成功执行，申诉驳回已正确处理');
+        $result = '申诉被驳回，维持原处理结果';
+        $operator = 'admin_004';
+
+        // 执行申诉复核操作（拒绝）
+        $this->service->reviewAppeal($userId, $appealContent, $approved, $result, $operator);
+
+        // 验证申诉记录是否正确创建
+        $violationRecords = $this->violationRecordRepository
+            ->findBy(['user' => $userId])
+        ;
+
+        $this->assertNotEmpty($violationRecords);
+        $record = $violationRecords[0];
+
+        $this->assertEquals($result, $record->getProcessResult());
+        $this->assertEquals($operator, $record->getProcessedBy());
     }
-    
-    public function testGetUserViolationRecords()
+
+    public function testGetUserViolationRecords(): void
     {
-        $expectedRecords = [
-            new ViolationRecord(),
-            new ViolationRecord(),
-            new ViolationRecord()
-        ];
-        
-        $this->violationRecordRepository->expects($this->once())
-            ->method('findByUser')
-            ->with('test_user')
-            ->willReturn($expectedRecords);
-            
-        $result = $this->service->getUserViolationRecords('test_user');
-        
-        $this->assertEquals($expectedRecords, $result);
-        $this->assertCount(3, $result);
+        $userId = 'test_user_violations';
+        $operator = 'admin_005';
+
+        // 创建多个违规记录
+        $this->service->disableUser($userId, '第一次违规', $operator);
+        $this->service->enableUser($userId, '申诉成功', $operator);
+        $this->service->disableUser($userId, '第二次违规', $operator);
+
+        // 获取用户违规记录
+        $violationRecords = $this->service->getUserViolationRecords($userId);
+
+        // 验证记录数量和内容
+        $this->assertCount(3, $violationRecords);
+
+        // 验证每条记录都属于指定用户
+        foreach ($violationRecords as $record) {
+            $this->assertEquals($userId, $record->getUser());
+            $this->assertEquals($operator, $record->getProcessedBy());
+        }
     }
-    
-    public function testDisableUser_withEmptyReason()
+
+    public function testGetUserViolationRecordsWithNoRecords(): void
     {
-        $reason = '';
-        $operator = 'admin';
-        
-        // 设置logger期望
-        $this->logger->expects($this->once())
-            ->method('warning');
-            
-        $this->logger->expects($this->once())
-            ->method('info');
-            
-        // 设置entityManager期望
-        $this->entityManager->expects($this->once())
-            ->method('persist')
-            ->with($this->callback(function ($record) {
-                return $record instanceof ViolationRecord
-                    && $record->getViolationContent() === '';
-            }));
-            
-        $this->entityManager->expects($this->once())
-            ->method('flush');
-            
-        // 执行方法
-        $this->service->disableUser('test_user', $reason, $operator);
+        $userId = 'non_existent_user';
+
+        // 获取不存在用户的违规记录
+        $violationRecords = $this->service->getUserViolationRecords($userId);
+
+        // 应该返回空数组
+        $this->assertEmpty($violationRecords);
     }
-    
-    public function testEnableUser_withLongReason()
+
+    public function testDisableUserWithStringUserId(): void
     {
-        $reason = str_repeat('很长的解禁原因 ', 50);
-        $operator = 'admin';
-        
-        // 设置logger期望
-        $this->logger->expects($this->exactly(2))
-            ->method('info');
-            
-        // 设置entityManager期望
-        $this->entityManager->expects($this->once())
-            ->method('persist')
-            ->with($this->callback(function ($record) use ($reason) {
-                return $record instanceof ViolationRecord
-                    && $record->getViolationContent() === '账号解禁: ' . $reason;
-            }));
-            
-        $this->entityManager->expects($this->once())
-            ->method('flush');
-            
-        // 执行方法
-        $this->service->enableUser('test_user', $reason, $operator);
+        $userId = 'user_string_id';
+        $reason = '字符串用户ID测试';
+        $operator = 'admin_string';
+
+        // 执行禁用用户操作
+        $this->service->disableUser($userId, $reason, $operator);
+
+        // 验证记录是否正确创建
+        $violationRecords = $this->violationRecordRepository
+            ->findBy(['user' => $userId])
+        ;
+
+        $this->assertNotEmpty($violationRecords);
+        $this->assertEquals($userId, $violationRecords[0]->getUser());
     }
-    
-    public function testReviewAppeal_withEmptyAppealContent()
+
+    public function testDisableUserWithIntegerUserId(): void
     {
-        $appealContent = '';
-        $approved = false;
-        $result = '申诉内容为空，驳回申诉';
-        $operator = 'admin';
-        
-        // 设置logger期望
-        $this->logger->expects($this->once())
-            ->method('info');
-            
-        // 设置entityManager期望
-        $this->entityManager->expects($this->once())
-            ->method('persist')
-            ->with($this->callback(function ($record) {
-                return $record instanceof ViolationRecord
-                    && $record->getViolationContent() === '用户申诉: ';
-            }));
-            
-        $this->entityManager->expects($this->once())
-            ->method('flush');
-            
-        // 执行方法
-        $this->service->reviewAppeal('test_user', $appealContent, $approved, $result, $operator);
+        $userId = 12345;
+        $reason = '数字用户ID测试';
+        $operator = 'admin_int';
+
+        // 执行禁用用户操作
+        $this->service->disableUser($userId, $reason, $operator);
+
+        // 验证记录是否正确创建
+        $violationRecords = $this->violationRecordRepository
+            ->findBy(['user' => $userId])
+        ;
+
+        $this->assertNotEmpty($violationRecords);
+        $this->assertEquals($userId, $violationRecords[0]->getUser());
     }
-    
-    public function testGetUserViolationRecords_withNoRecords()
-    {
-        $this->violationRecordRepository->expects($this->once())
-            ->method('findByUser')
-            ->with('test_user')
-            ->willReturn([]);
-            
-        $result = $this->service->getUserViolationRecords('test_user');
-        
-        $this->assertEquals([], $result);
-        $this->assertCount(0, $result);
-    }
-    
-    /**
-     * 测试异常处理 - EntityManager异常
-     */
-    public function testDisableUser_withEntityManagerException()
-    {
-        $reason = '违规内容';
-        $operator = 'admin';
-        
-        // 设置logger期望
-        $this->logger->expects($this->once())
-            ->method('warning');
-            
-        // 设置EntityManager抛出异常
-        $this->entityManager->method('persist')
-            ->willThrowException(new \Exception('Database error'));
-            
-        // 执行方法，应该抛出异常
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Database error');
-        
-        $this->service->disableUser('test_user', $reason, $operator);
-    }
-    
-    /**
-     * 测试异常处理 - Repository异常
-     */
-    public function testGetUserViolationRecords_withRepositoryException()
-    {
-        $this->violationRecordRepository->expects($this->once())
-            ->method('findByUser')
-            ->with('test_user')
-            ->willThrowException(new \Exception('Query error'));
-            
-        // 执行方法，应该抛出异常
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Query error');
-        
-        $this->service->getUserViolationRecords('test_user');
-    }
-} 
+}

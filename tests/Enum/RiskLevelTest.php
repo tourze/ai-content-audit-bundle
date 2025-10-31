@@ -3,19 +3,26 @@
 namespace AIContentAuditBundle\Tests\Enum;
 
 use AIContentAuditBundle\Enum\RiskLevel;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tourze\PHPUnitEnum\AbstractEnumTestCase;
 
-class RiskLevelTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(RiskLevel::class)]
+final class RiskLevelTest extends AbstractEnumTestCase
 {
-    /**
-     * @dataProvider provideRiskLevelLabelData
-     */
+    #[DataProvider('provideRiskLevelLabelData')]
     public function testGetLabel(RiskLevel $riskLevel, string $expectedLabel): void
     {
         $this->assertEquals($expectedLabel, $riskLevel->getLabel());
     }
-    
-    public function provideRiskLevelLabelData(): array
+
+    /**
+     * @return array<string, array{0: RiskLevel, 1: string}>
+     */
+    public static function provideRiskLevelLabelData(): array
     {
         return [
             'no risk' => [RiskLevel::NO_RISK, '无风险'],
@@ -24,16 +31,17 @@ class RiskLevelTest extends TestCase
             'high risk' => [RiskLevel::HIGH_RISK, '高风险'],
         ];
     }
-    
-    /**
-     * @dataProvider provideRiskLevelOrderData
-     */
+
+    #[DataProvider('provideRiskLevelOrderData')]
     public function testGetOrder(RiskLevel $riskLevel, int $expectedOrder): void
     {
         $this->assertEquals($expectedOrder, $riskLevel->getOrder());
     }
-    
-    public function provideRiskLevelOrderData(): array
+
+    /**
+     * @return array<string, array{0: RiskLevel, 1: int}>
+     */
+    public static function provideRiskLevelOrderData(): array
     {
         return [
             'no risk' => [RiskLevel::NO_RISK, 0],
@@ -42,19 +50,20 @@ class RiskLevelTest extends TestCase
             'high risk' => [RiskLevel::HIGH_RISK, 3],
         ];
     }
-    
-    /**
-     * @dataProvider provideRiskLevelComparisonData
-     */
+
+    #[DataProvider('provideRiskLevelComparisonData')]
     public function testGetHigher(RiskLevel $riskLevel1, RiskLevel $riskLevel2, RiskLevel $expectedHigherLevel): void
     {
         $this->assertSame(
-            $expectedHigherLevel, 
+            $expectedHigherLevel,
             RiskLevel::getHigher($riskLevel1, $riskLevel2)
         );
     }
-    
-    public function provideRiskLevelComparisonData(): array
+
+    /**
+     * @return array<string, array{0: RiskLevel, 1: RiskLevel, 2: RiskLevel}>
+     */
+    public static function provideRiskLevelComparisonData(): array
     {
         return [
             'no risk vs no risk' => [RiskLevel::NO_RISK, RiskLevel::NO_RISK, RiskLevel::NO_RISK],
@@ -67,7 +76,7 @@ class RiskLevelTest extends TestCase
             'high risk vs high risk' => [RiskLevel::HIGH_RISK, RiskLevel::HIGH_RISK, RiskLevel::HIGH_RISK],
         ];
     }
-    
+
     /**
      * 测试所有风险等级的值是否符合预期
      */
@@ -78,4 +87,17 @@ class RiskLevelTest extends TestCase
         $this->assertEquals('中风险', RiskLevel::MEDIUM_RISK->value);
         $this->assertEquals('高风险', RiskLevel::HIGH_RISK->value);
     }
-} 
+
+    /**
+     * 测试toArray方法返回所有枚举值的数组
+     */
+    public function testToArray(): void
+    {
+        $expected = [
+            'value' => '无风险',
+            'label' => '无风险',
+        ];
+
+        $this->assertEquals($expected, RiskLevel::NO_RISK->toArray());
+    }
+}

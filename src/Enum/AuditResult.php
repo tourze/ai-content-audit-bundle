@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AIContentAuditBundle\Enum;
 
 use Tourze\EnumExtra\Itemable;
@@ -11,28 +13,22 @@ use Tourze\EnumExtra\SelectTrait;
 /**
  * 审核结果枚举
  */
-enum AuditResult: string implements Itemable, Labelable, Selectable
+enum AuditResult: string implements Labelable, Itemable, Selectable
 {
     use ItemTrait;
     use SelectTrait;
+
     case PASS = '通过';
     case MODIFY = '修改';
     case DELETE = '删除';
 
-    /**
-     * 获取显示标签
-     */
     public function getLabel(): string
     {
-        return match ($this) {
-            self::PASS => '通过',
-            self::MODIFY => '修改',
-            self::DELETE => '删除',
-        };
+        return $this->value;
     }
 
     /**
-     * 获取显示样式
+     * 获取样式类名
      */
     public function getStyle(): string
     {
@@ -42,4 +38,22 @@ enum AuditResult: string implements Itemable, Labelable, Selectable
             self::DELETE => 'danger',
         };
     }
-} 
+
+    /**
+     * 获取所有枚举的选项数组（用于下拉列表等）
+     *
+     * @return array<int, array{value: string, label: string}>
+     */
+    public static function toSelectItems(): array
+    {
+        $result = [];
+        foreach (self::cases() as $case) {
+            $result[] = [
+                'value' => $case->value,
+                'label' => $case->getLabel(),
+            ];
+        }
+
+        return $result;
+    }
+}

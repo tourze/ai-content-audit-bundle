@@ -4,302 +4,151 @@ namespace AIContentAuditBundle\Tests\Service;
 
 use AIContentAuditBundle\Entity\GeneratedContent;
 use AIContentAuditBundle\Entity\RiskKeyword;
-use AIContentAuditBundle\Repository\GeneratedContentRepository;
-use AIContentAuditBundle\Repository\RiskKeywordRepository;
+use AIContentAuditBundle\Enum\AuditResult;
+use AIContentAuditBundle\Enum\RiskLevel;
 use AIContentAuditBundle\Service\StatisticsService;
-use Doctrine\ORM\Query;
-use Doctrine\ORM\QueryBuilder;
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractIntegrationTestCase;
 
-class StatisticsServiceTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(StatisticsService::class)]
+#[RunTestsInSeparateProcesses]
+final class StatisticsServiceTest extends AbstractIntegrationTestCase
 {
     private StatisticsService $service;
-    private MockObject $generatedContentRepository;
-    private MockObject $riskKeywordRepository;
-    private MockObject $logger;
 
-    protected function setUp(): void
+    protected function onSetUp(): void
     {
-        $this->generatedContentRepository = $this->createMock(GeneratedContentRepository::class);
-        $this->riskKeywordRepository = $this->createMock(RiskKeywordRepository::class);
-        $this->logger = $this->createMock(LoggerInterface::class);
-        
-        $this->service = new StatisticsService(
-            $this->generatedContentRepository,
-            $this->riskKeywordRepository,
-            $this->logger
-        );
+        $this->service = self::getService(StatisticsService::class);
     }
-    
-    public function testGetAuditEfficiencyStatistics_withAuditedContent()
+
+    public function testServiceExists(): void
     {
-        // 创建模拟的审核内容
-        $content1 = $this->createMock(GeneratedContent::class);
-        $content2 = $this->createMock(GeneratedContent::class);
-        
-        $machineTime = new \DateTimeImmutable('2024-01-01 10:00:00');
-        $manualTime1 = new \DateTimeImmutable('2024-01-01 10:05:00'); // 5分钟后
-        $manualTime2 = new \DateTimeImmutable('2024-01-01 10:10:00'); // 10分钟后
-        
-        $content1->method('getMachineAuditTime')->willReturn($machineTime);
-        $content1->method('getManualAuditTime')->willReturn($manualTime1);
-        
-        $content2->method('getMachineAuditTime')->willReturn($machineTime);
-        $content2->method('getManualAuditTime')->willReturn($manualTime2);
-        
-        $auditedContents = [$content1, $content2];
-        
-        // Mock QueryBuilder for audited contents
-        $queryBuilder1 = $this->createMock(QueryBuilder::class);
-        $query1 = $this->createMock(Query::class);
-        
-        $this->generatedContentRepository->expects($this->exactly(2))
-            ->method('createQueryBuilder')
-            ->with('g')
-            ->willReturn($queryBuilder1);
-            
-        $queryBuilder1->method('andWhere')->willReturnSelf();
-        $queryBuilder1->method('setParameter')->willReturnSelf();
-        $queryBuilder1->method('select')->willReturnSelf();
-        $queryBuilder1->method('groupBy')->willReturnSelf();
-        $queryBuilder1->method('getQuery')->willReturn($query1);
-        
-        // 第一次调用返回审核内容，第二次调用返回审核结果统计
-        $query1->method('getResult')
-            ->willReturnCallback(function() use ($auditedContents) {
-                static $callCount = 0;
-                $callCount++;
-                return $callCount === 1 ? $auditedContents : [
-                    ['result' => 'PASS', 'count' => 1],
-                    ['result' => 'MODIFY', 'count' => 1]
-                ];
-            });
-        
-        // 设置logger期望
-        $this->logger->expects($this->once())
-            ->method('info')
-            ->with('获取审核效率统计数据');
-            
-        // 执行方法
-        $result = $this->service->getAuditEfficiencyStatistics();
-        
-        // 断言结果
-        $this->assertArrayHasKey('auditCount', $result);
-        $this->assertArrayHasKey('avgAuditTimeSeconds', $result);
-        $this->assertArrayHasKey('auditResults', $result);
-        
-        $this->assertEquals(2, $result['auditCount']);
-        $this->assertEquals(450, $result['avgAuditTimeSeconds']); // (300 + 600) / 2 = 450秒
-        $this->assertEquals(['PASS' => 1, 'MODIFY' => 1], $result['auditResults']);
+        // 验证服务可以正确获取
+        $this->assertInstanceOf(StatisticsService::class, $this->service);
     }
-    
-    public function testGetAuditEfficiencyStatistics_withNoAuditedContent()
+
+    public function testGetAuditEfficiencyStatistics(): void
     {
-        // Mock QueryBuilder for empty results
-        $queryBuilder = $this->createMock(QueryBuilder::class);
-        $query = $this->createMock(Query::class);
-        
-        $this->generatedContentRepository->expects($this->exactly(2))
-            ->method('createQueryBuilder')
-            ->with('g')
-            ->willReturn($queryBuilder);
-            
-        $queryBuilder->method('andWhere')->willReturnSelf();
-        $queryBuilder->method('setParameter')->willReturnSelf();
-        $queryBuilder->method('select')->willReturnSelf();
-        $queryBuilder->method('groupBy')->willReturnSelf();
-        $queryBuilder->method('getQuery')->willReturn($query);
-        
-        // 返回空结果
-        $query->method('getResult')->willReturn([]);
-        
-        // 设置logger期望
-        $this->logger->expects($this->once())
-            ->method('info')
-            ->with('获取审核效率统计数据');
-            
-        // 执行方法
-        $result = $this->service->getAuditEfficiencyStatistics();
-        
-        // 断言结果
-        $this->assertEquals(0, $result['auditCount']);
-        $this->assertEquals(0, $result['avgAuditTimeSeconds']);
-        $this->assertEquals([], $result['auditResults']);
+        // 创建测试数据 - 有人工审核结果的内容
+        $content1 = new GeneratedContent();
+        $content1->setUser('test_user_1');
+        $content1->setInputText('Test input 1');
+        $content1->setOutputText('Test output 1');
+        $content1->setMachineAuditResult(RiskLevel::LOW_RISK);
+        $content1->setMachineAuditTime(new \DateTimeImmutable('-2 days 10:00:00'));
+        $content1->setManualAuditResult(AuditResult::PASS);
+        $content1->setManualAuditTime(new \DateTimeImmutable('-2 days 11:00:00'));
+        self::getEntityManager()->persist($content1);
+
+        $content2 = new GeneratedContent();
+        $content2->setUser('test_user_2');
+        $content2->setInputText('Test input 2');
+        $content2->setOutputText('Test output 2');
+        $content2->setMachineAuditResult(RiskLevel::HIGH_RISK);
+        $content2->setMachineAuditTime(new \DateTimeImmutable('-1 days 14:00:00'));
+        $content2->setManualAuditResult(AuditResult::DELETE);
+        $content2->setManualAuditTime(new \DateTimeImmutable('-1 days 15:00:00'));
+        self::getEntityManager()->persist($content2);
+
+        // 创建一个没有人工审核的内容（应该被排除）
+        $content3 = new GeneratedContent();
+        $content3->setUser('test_user_3');
+        $content3->setInputText('Test input 3');
+        $content3->setOutputText('Test output 3');
+        $content3->setMachineAuditResult(RiskLevel::NO_RISK);
+        $content3->setMachineAuditTime(new \DateTimeImmutable('-1 days'));
+        self::getEntityManager()->persist($content3);
+
+        self::getEntityManager()->flush();
+
+        // 测试统计方法
+        $statistics = $this->service->getAuditEfficiencyStatistics();
+
+        // 验证返回结构
+        $this->assertArrayHasKey('auditCount', $statistics);
+        $this->assertArrayHasKey('avgAuditTimeSeconds', $statistics);
+        $this->assertArrayHasKey('auditResults', $statistics);
+
+        // 验证审核数量（至少包含我们创建的2条记录）
+        $this->assertGreaterThanOrEqual(2, $statistics['auditCount']);
+
+        // 验证平均审核时间为正数（具体值可能受其他数据影响）
+        $this->assertGreaterThan(0, $statistics['avgAuditTimeSeconds']);
+
+        // 验证审核结果统计（至少包含我们创建的数据）
+        $auditResults = $statistics['auditResults'];
+        self::assertIsArray($auditResults);
+        $this->assertArrayHasKey('通过', $auditResults);
+        $this->assertArrayHasKey('删除', $auditResults);
+        $this->assertGreaterThanOrEqual(1, $auditResults['通过']);
+        $this->assertGreaterThanOrEqual(1, $auditResults['删除']);
     }
-    
-    public function testGetKeywordStatistics()
+
+    public function testGetKeywordStatistics(): void
     {
-        $keywordByRiskLevel = [
-            'HIGH_RISK' => 10,
-            'MEDIUM_RISK' => 15,
-            'LOW_RISK' => 20
-        ];
-        
-        $keywordByCategory = [
-            '暴力' => 5,
-            '色情' => 8,
-            '政治' => 12
-        ];
-        
-        $recentKeywords = [
-            $this->createMock(RiskKeyword::class),
-            $this->createMock(RiskKeyword::class)
-        ];
-        
-        // 设置repository期望
-        $this->riskKeywordRepository->expects($this->once())
-            ->method('countByRiskLevel')
-            ->willReturn($keywordByRiskLevel);
-            
-        $this->riskKeywordRepository->expects($this->once())
-            ->method('countByCategory')
-            ->willReturn($keywordByCategory);
-            
-        $this->riskKeywordRepository->expects($this->once())
-            ->method('findRecentUpdated')
-            ->with(10)
-            ->willReturn($recentKeywords);
-        
-        // 设置logger期望
-        $this->logger->expects($this->once())
-            ->method('info')
-            ->with('获取风险关键词统计数据');
-            
-        // 执行方法
-        $result = $this->service->getKeywordStatistics();
-        
-        // 断言结果
-        $this->assertArrayHasKey('keywordByRiskLevel', $result);
-        $this->assertArrayHasKey('keywordByCategory', $result);
-        $this->assertArrayHasKey('recentKeywords', $result);
-        
-        $this->assertEquals($keywordByRiskLevel, $result['keywordByRiskLevel']);
-        $this->assertEquals($keywordByCategory, $result['keywordByCategory']);
-        $this->assertEquals($recentKeywords, $result['recentKeywords']);
+        // 创建测试风险关键词数据
+        $keyword1 = new RiskKeyword();
+        $keyword1->setKeyword('test_keyword_1');
+        $keyword1->setRiskLevel(RiskLevel::HIGH_RISK);
+        $keyword1->setCategory('category_1');
+        $keyword1->setAddedBy('admin');
+        $keyword1->setUpdateTime(new \DateTimeImmutable());
+        self::getEntityManager()->persist($keyword1);
+
+        $keyword2 = new RiskKeyword();
+        $keyword2->setKeyword('test_keyword_2');
+        $keyword2->setRiskLevel(RiskLevel::LOW_RISK);
+        $keyword2->setCategory('category_1');
+        $keyword2->setAddedBy('admin');
+        $keyword2->setUpdateTime(new \DateTimeImmutable('-1 hour'));
+        self::getEntityManager()->persist($keyword2);
+
+        $keyword3 = new RiskKeyword();
+        $keyword3->setKeyword('test_keyword_3');
+        $keyword3->setRiskLevel(RiskLevel::HIGH_RISK);
+        $keyword3->setCategory('category_2');
+        $keyword3->setAddedBy('admin');
+        $keyword3->setUpdateTime(new \DateTimeImmutable('-2 hours'));
+        self::getEntityManager()->persist($keyword3);
+
+        self::getEntityManager()->flush();
+
+        // 测试统计方法
+        $statistics = $this->service->getKeywordStatistics();
+
+        // 验证返回结构
+        $this->assertArrayHasKey('keywordByRiskLevel', $statistics);
+        $this->assertArrayHasKey('keywordByCategory', $statistics);
+        $this->assertArrayHasKey('recentKeywords', $statistics);
+
+        // 验证风险等级统计（至少包含我们创建的数据）
+        $riskLevelStats = $statistics['keywordByRiskLevel'];
+        self::assertIsArray($riskLevelStats);
+        $this->assertArrayHasKey('高风险', $riskLevelStats);
+        $this->assertArrayHasKey('低风险', $riskLevelStats);
+        $this->assertGreaterThanOrEqual(2, $riskLevelStats['高风险']);
+        $this->assertGreaterThanOrEqual(1, $riskLevelStats['低风险']);
+
+        // 验证分类统计（至少包含我们创建的数据）
+        $categoryStats = $statistics['keywordByCategory'];
+        self::assertIsArray($categoryStats);
+        $this->assertArrayHasKey('category_1', $categoryStats);
+        $this->assertArrayHasKey('category_2', $categoryStats);
+        $this->assertGreaterThanOrEqual(2, $categoryStats['category_1']);
+        $this->assertGreaterThanOrEqual(1, $categoryStats['category_2']);
+
+        // 验证最近更新的关键词
+        $recentKeywords = $statistics['recentKeywords'];
+        $this->assertIsArray($recentKeywords);
+        $this->assertGreaterThanOrEqual(3, count($recentKeywords));
+        // 验证返回的关键词都是有效对象
+        foreach (array_slice($recentKeywords, 0, 3) as $keyword) {
+            $this->assertInstanceOf(RiskKeyword::class, $keyword);
+            $this->assertNotEmpty($keyword->getKeyword());
+        }
     }
-    
-    public function testGetAuditEfficiencyStatistics_withSingleContent()
-    {
-        // 创建单个模拟内容
-        $content = $this->createMock(GeneratedContent::class);
-        
-        $machineTime = new \DateTimeImmutable('2024-01-01 10:00:00');
-        $manualTime = new \DateTimeImmutable('2024-01-01 10:03:00'); // 3分钟后
-        
-        $content->method('getMachineAuditTime')->willReturn($machineTime);
-        $content->method('getManualAuditTime')->willReturn($manualTime);
-        
-        $auditedContents = [$content];
-        
-        // Mock QueryBuilder
-        $queryBuilder = $this->createMock(QueryBuilder::class);
-        $query = $this->createMock(Query::class);
-        
-        $this->generatedContentRepository->expects($this->exactly(2))
-            ->method('createQueryBuilder')
-            ->with('g')
-            ->willReturn($queryBuilder);
-            
-        $queryBuilder->method('andWhere')->willReturnSelf();
-        $queryBuilder->method('setParameter')->willReturnSelf();
-        $queryBuilder->method('select')->willReturnSelf();
-        $queryBuilder->method('groupBy')->willReturnSelf();
-        $queryBuilder->method('getQuery')->willReturn($query);
-        
-        $query->method('getResult')
-            ->willReturnCallback(function() use ($auditedContents) {
-                static $callCount = 0;
-                $callCount++;
-                return $callCount === 1 ? $auditedContents : [['result' => 'PASS', 'count' => 1]];
-            });
-        
-        // 设置logger期望
-        $this->logger->expects($this->once())
-            ->method('info');
-            
-        // 执行方法
-        $result = $this->service->getAuditEfficiencyStatistics();
-        
-        // 断言结果
-        $this->assertEquals(1, $result['auditCount']);
-        $this->assertEquals(180, $result['avgAuditTimeSeconds']); // 3分钟 = 180秒
-        $this->assertEquals(['PASS' => 1], $result['auditResults']);
-    }
-    
-    public function testGetKeywordStatistics_withEmptyResults()
-    {
-        // 设置repository返回空结果
-        $this->riskKeywordRepository->expects($this->once())
-            ->method('countByRiskLevel')
-            ->willReturn([]);
-            
-        $this->riskKeywordRepository->expects($this->once())
-            ->method('countByCategory')
-            ->willReturn([]);
-            
-        $this->riskKeywordRepository->expects($this->once())
-            ->method('findRecentUpdated')
-            ->with(10)
-            ->willReturn([]);
-        
-        // 设置logger期望
-        $this->logger->expects($this->once())
-            ->method('info');
-            
-        // 执行方法
-        $result = $this->service->getKeywordStatistics();
-        
-        // 断言结果
-        $this->assertEquals([], $result['keywordByRiskLevel']);
-        $this->assertEquals([], $result['keywordByCategory']);
-        $this->assertEquals([], $result['recentKeywords']);
-    }
-    
-    public function testGetAuditEfficiencyStatistics_withZeroAuditTime()
-    {
-        // 创建审核时间为0的内容（机器审核时间和人工审核时间相同）
-        $content = $this->createMock(GeneratedContent::class);
-        
-        $auditTime = new \DateTimeImmutable('2024-01-01 10:00:00');
-        
-        $content->method('getMachineAuditTime')->willReturn($auditTime);
-        $content->method('getManualAuditTime')->willReturn($auditTime);
-        
-        $auditedContents = [$content];
-        
-        // Mock QueryBuilder
-        $queryBuilder = $this->createMock(QueryBuilder::class);
-        $query = $this->createMock(Query::class);
-        
-        $this->generatedContentRepository->expects($this->exactly(2))
-            ->method('createQueryBuilder')
-            ->willReturn($queryBuilder);
-            
-        $queryBuilder->method('andWhere')->willReturnSelf();
-        $queryBuilder->method('setParameter')->willReturnSelf();
-        $queryBuilder->method('select')->willReturnSelf();
-        $queryBuilder->method('groupBy')->willReturnSelf();
-        $queryBuilder->method('getQuery')->willReturn($query);
-        
-        $query->method('getResult')
-            ->willReturnCallback(function() use ($auditedContents) {
-                static $callCount = 0;
-                $callCount++;
-                return $callCount === 1 ? $auditedContents : [['result' => 'PASS', 'count' => 1]];
-            });
-        
-        // 设置logger期望
-        $this->logger->expects($this->once())
-            ->method('info');
-            
-        // 执行方法
-        $result = $this->service->getAuditEfficiencyStatistics();
-        
-        // 断言结果
-        $this->assertEquals(1, $result['auditCount']);
-        $this->assertEquals(0, $result['avgAuditTimeSeconds']); // 审核时间为0
-        $this->assertEquals(['PASS' => 1], $result['auditResults']);
-    }
-} 
+}

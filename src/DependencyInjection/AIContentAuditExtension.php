@@ -1,20 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AIContentAuditBundle\DependencyInjection;
 
-use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Extension\Extension;
-use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
+use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
+use Tourze\SymfonyDependencyServiceLoader\AutoExtension;
 
-class AIContentAuditExtension extends Extension
+class AIContentAuditExtension extends AutoExtension implements PrependExtensionInterface
 {
-    public function load(array $configs, ContainerBuilder $container): void
+    protected function getConfigDir(): string
     {
-        $loader = new YamlFileLoader(
-            $container,
-            new FileLocator(__DIR__ . '/../Resources/config')
-        );
-        $loader->load('services.yaml');
+        return __DIR__ . '/../Resources/config';
+    }
+
+    public function prepend(ContainerBuilder $container): void
+    {
+        $container->prependExtensionConfig('twig', [
+            'paths' => [
+                dirname(__DIR__, 2) . '/templates' => 'AIContentAudit',
+            ],
+        ]);
     }
 }

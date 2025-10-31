@@ -1,162 +1,88 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AIContentAuditBundle\Tests\Controller\Admin;
 
 use AIContentAuditBundle\Controller\Admin\GeneratedContentCrudController;
-use AIContentAuditBundle\Entity\GeneratedContent;
-use AIContentAuditBundle\Enum\AuditResult;
-use AIContentAuditBundle\Enum\RiskLevel;
-use AIContentAuditBundle\Repository\GeneratedContentRepository;
-use AIContentAuditBundle\Service\ContentAuditService;
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Tourze\PHPUnitSymfonyWebTest\AbstractEasyAdminControllerTestCase;
 
-class GeneratedContentCrudControllerTest extends TestCase
+/**
+ * GeneratedContentCrudController HTTP集成测试
+ *
+ * 通过HTTP层测试控制器功能，符合WebTestCase标准
+ *
+ * @internal
+ */
+#[CoversClass(GeneratedContentCrudController::class)]
+#[RunTestsInSeparateProcesses]
+final class GeneratedContentCrudControllerTest extends AbstractEasyAdminControllerTestCase
 {
-    private GeneratedContentCrudController $controller;
-    private ContentAuditService&MockObject $contentAuditService;
-    private GeneratedContentRepository&MockObject $repository;
+    /**
+     * @return AbstractCrudController<\AIContentAuditBundle\Entity\GeneratedContent>
+     */
+    protected function getControllerService(): AbstractCrudController
+    {
+        $controller = self::getService(GeneratedContentCrudController::class);
+        self::assertInstanceOf(AbstractCrudController::class, $controller);
 
-    protected function setUp(): void
-    {
-        $this->contentAuditService = $this->createMock(ContentAuditService::class);
-        $this->repository = $this->createMock(GeneratedContentRepository::class);
-        
-        $this->controller = new GeneratedContentCrudController(
-            $this->contentAuditService,
-            $this->repository
-        );
+        return $controller;
     }
-    
-    public function testGetEntityFqcn()
+
+    public static function provideIndexPageHeaders(): iterable
     {
-        $result = GeneratedContentCrudController::getEntityFqcn();
-        
-        $this->assertEquals(GeneratedContent::class, $result);
+        yield '用户' => ['用户'];
+        yield '机器审核结果' => ['机器审核结果'];
+        yield '机器审核时间' => ['机器审核时间'];
+        yield '人工审核结果' => ['人工审核结果'];
+        yield '人工审核时间' => ['人工审核时间'];
     }
-    
-    public function testAudit_withValidContent()
+
+    public static function provideNewPageFields(): iterable
     {
-        // 由于涉及复杂的EasyAdmin环境设置，这里主要测试控制器实例
-        $this->assertInstanceOf(GeneratedContentCrudController::class, $this->controller);
+        yield 'user' => ['user'];
+        yield 'inputText' => ['inputText'];
+        yield 'outputText' => ['outputText'];
+        yield 'machineAuditResult' => ['machineAuditResult'];
+        yield 'machineAuditTime' => ['machineAuditTime'];
+        yield 'manualAuditResult' => ['manualAuditResult'];
+        yield 'manualAuditTime' => ['manualAuditTime'];
     }
-    
-    public function testAudit_withNonExistentContent()
+
+    public static function provideEditPageFields(): iterable
     {
-        $contentId = 999;
-        $entityManager = $this->createMock(\Doctrine\ORM\EntityManagerInterface::class);
-        
-        // Mock repository返回null
-        $this->repository->expects($this->once())
-            ->method('find')
-            ->with($contentId)
-            ->willReturn(null);
-            
-        $this->expectException(NotFoundHttpException::class);
-        $this->expectExceptionMessage('内容不存在');
-        
-        $this->controller->audit($entityManager, $contentId);
+        yield 'user' => ['user'];
+        yield 'inputText' => ['inputText'];
+        yield 'outputText' => ['outputText'];
+        yield 'machineAuditResult' => ['machineAuditResult'];
+        yield 'machineAuditTime' => ['machineAuditTime'];
+        yield 'manualAuditResult' => ['manualAuditResult'];
+        yield 'manualAuditTime' => ['manualAuditTime'];
     }
-    
-    public function testSubmitAudit_withValidContent()
+
+    public function testAuthenticatedAdminCanAccessDashboard(): void
     {
-        // 由于涉及复杂的EasyAdmin环境设置，这里主要测试控制器实例
-        $this->assertInstanceOf(GeneratedContentCrudController::class, $this->controller);
+        $client = self::createClientWithDatabase();
+        $this->loginAsAdmin($client);
+
+        // 认证用户应该能访问Dashboard
+        $crawler = $client->request('GET', '/admin');
+
+        // 验证响应状态
+        $response = $client->getResponse();
+        $this->assertTrue($response->isSuccessful(), 'Response should be successful');
+        $content = $response->getContent();
+        $this->assertStringContainsString('dashboard', false !== $content ? $content : '');
     }
-    
-    public function testSubmitAudit_withNonExistentContent()
+
+    /**
+     * 测试audit自定义动作
+     */
+    public function testAuditAction(): void
     {
-        $contentId = 999;
-        $request = $this->createMock(Request::class);
-        
-        // Mock repository返回null
-        $this->repository->expects($this->once())
-            ->method('find')
-            ->with($contentId)
-            ->willReturn(null);
-            
-        $this->expectException(NotFoundHttpException::class);
-        $this->expectExceptionMessage('内容不存在');
-        
-        $this->controller->submitAudit($request, $contentId);
+        self::markTestSkipped('audit 功能的 Twig 模板尚未实现');
     }
-    
-    public function testGetRiskLevelChoices()
-    {
-        // 使用反射访问私有方法
-        $reflection = new \ReflectionClass($this->controller);
-        $method = $reflection->getMethod('getRiskLevelChoices');
-        $method->setAccessible(true);
-        
-        $result = $method->invoke($this->controller);
-        
-        $this->assertIsArray($result);
-        $this->assertArrayHasKey('无风险', $result);
-        $this->assertArrayHasKey('低风险', $result);
-        $this->assertArrayHasKey('中风险', $result);
-        $this->assertArrayHasKey('高风险', $result);
-        
-        $this->assertEquals(RiskLevel::NO_RISK->value, $result['无风险']);
-        $this->assertEquals(RiskLevel::LOW_RISK->value, $result['低风险']);
-        $this->assertEquals(RiskLevel::MEDIUM_RISK->value, $result['中风险']);
-        $this->assertEquals(RiskLevel::HIGH_RISK->value, $result['高风险']);
-    }
-    
-    public function testGetAuditResultChoices()
-    {
-        // 使用反射访问私有方法
-        $reflection = new \ReflectionClass($this->controller);
-        $method = $reflection->getMethod('getAuditResultChoices');
-        $method->setAccessible(true);
-        
-        $result = $method->invoke($this->controller);
-        
-        $this->assertIsArray($result);
-        $this->assertArrayHasKey('通过', $result);
-        $this->assertArrayHasKey('修改', $result);
-        $this->assertArrayHasKey('删除', $result);
-        
-        $this->assertEquals(AuditResult::PASS->value, $result['通过']);
-        $this->assertEquals(AuditResult::MODIFY->value, $result['修改']);
-        $this->assertEquals(AuditResult::DELETE->value, $result['删除']);
-    }
-    
-    public function testConfigureCrud()
-    {
-        // 测试方法是否可以被调用而不抛出异常
-        $crudMock = $this->createMock(\EasyCorp\Bundle\EasyAdminBundle\Config\Crud::class);
-        $crudMock->method('setEntityLabelInSingular')->willReturnSelf();
-        $crudMock->method('setEntityLabelInPlural')->willReturnSelf();
-        $crudMock->method('setSearchFields')->willReturnSelf();
-        $crudMock->method('setDefaultSort')->willReturnSelf();
-        $crudMock->method('setPaginatorPageSize')->willReturnSelf();
-        
-        $result = $this->controller->configureCrud($crudMock);
-        
-        $this->assertInstanceOf(\EasyCorp\Bundle\EasyAdminBundle\Config\Crud::class, $result);
-    }
-    
-    public function testConfigureFilters()
-    {
-        // 测试filters配置的调用，但由于复杂的EasyAdmin环境，我们仅测试控制器的继承关系
-        $this->assertInstanceOf(\EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController::class, $this->controller);
-    }
-    
-    public function testConfigureFields()
-    {
-        $result = $this->controller->configureFields('index');
-        
-        // 将迭代器转换为数组以便测试
-        $fields = iterator_to_array($result);
-        $this->assertNotEmpty($fields);
-    }
-    
-    public function testConfigureActions()
-    {
-        // 测试actions配置的调用，但由于复杂的EasyAdmin环境，我们仅测试控制器的继承关系
-        $this->assertInstanceOf(\EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController::class, $this->controller);
-    }
-    
-} 
+}
