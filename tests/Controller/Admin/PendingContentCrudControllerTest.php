@@ -82,8 +82,7 @@ final class PendingContentCrudControllerTest extends AbstractEasyAdminController
 
     public function testCanAccessPendingContentIndex(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
 
         // 直接访问EasyAdmin主页面，验证控制器可以正常加载
         $client->request('GET', '/admin');
@@ -95,8 +94,7 @@ final class PendingContentCrudControllerTest extends AbstractEasyAdminController
 
     public function testIndexPageShowsOnlyPendingContent(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
 
         // 创建测试数据
         $entityManager = self::getService(EntityManagerInterface::class);
@@ -149,8 +147,7 @@ final class PendingContentCrudControllerTest extends AbstractEasyAdminController
 
     public function testAuditActionRedirectsToEditPage(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
 
         // 创建测试数据
         $entityManager = self::getService(EntityManagerInterface::class);
@@ -183,8 +180,7 @@ final class PendingContentCrudControllerTest extends AbstractEasyAdminController
 
     public function testFindMethodBypassesQueryBuilderFilter(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
 
         // 创建一个不符合索引页过滤条件的内容（低风险）
         $entityManager = self::getService(EntityManagerInterface::class);
@@ -212,8 +208,7 @@ final class PendingContentCrudControllerTest extends AbstractEasyAdminController
 
     public function testAuditActionWithInvalidEntityId(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
 
         // 测试无效的实体ID
         $this->expectException(EntityNotFoundException::class);
@@ -223,8 +218,7 @@ final class PendingContentCrudControllerTest extends AbstractEasyAdminController
 
     public function testAuditActionWithoutEntityId(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
 
         // 对于路径参数，entityId 是必需的，访问 /audit 会匹配到 /{entityId}/audit 路由
         // entityId 会被解析为 "audit" 字符串，导致实体找不到
@@ -236,8 +230,7 @@ final class PendingContentCrudControllerTest extends AbstractEasyAdminController
 
     public function testQuickAuditPassAction(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
 
         // 创建待审核内容
         $entityManager = self::getService(EntityManagerInterface::class);
@@ -266,8 +259,7 @@ final class PendingContentCrudControllerTest extends AbstractEasyAdminController
 
     public function testQuickAuditRejectAction(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
 
         // 创建待审核内容
         $entityManager = self::getService(EntityManagerInterface::class);
@@ -296,8 +288,7 @@ final class PendingContentCrudControllerTest extends AbstractEasyAdminController
 
     public function testDetailAuditActionRedirectsCorrectly(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
 
         // 创建待审核内容
         $entityManager = self::getService(EntityManagerInterface::class);

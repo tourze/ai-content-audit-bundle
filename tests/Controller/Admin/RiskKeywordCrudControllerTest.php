@@ -63,8 +63,7 @@ final class RiskKeywordCrudControllerTest extends AbstractEasyAdminControllerTes
 
     public function testAuthenticatedAdminCanAccessDashboard(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
 
         // 认证用户应该能访问Dashboard
         $crawler = $client->request('GET', '/admin');
@@ -81,8 +80,7 @@ final class RiskKeywordCrudControllerTest extends AbstractEasyAdminControllerTes
      */
     public function testNewActionReturnsResponse(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
         $client->catchExceptions(true);
         $client->request('GET', '/admin?crudAction=new&crudControllerFqcn='
             . urlencode(RiskKeywordCrudController::class));
@@ -97,8 +95,7 @@ final class RiskKeywordCrudControllerTest extends AbstractEasyAdminControllerTes
      */
     public function testValidationErrorsForRequiredFields(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
         $client->catchExceptions(true);
 
         // 获取新建表单
@@ -146,8 +143,7 @@ final class RiskKeywordCrudControllerTest extends AbstractEasyAdminControllerTes
      */
     public function testValidationErrorForInvalidKeywordLength(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
         $client->catchExceptions(true);
 
         // 获取新建表单

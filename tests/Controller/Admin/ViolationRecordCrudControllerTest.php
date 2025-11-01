@@ -67,8 +67,7 @@ final class ViolationRecordCrudControllerTest extends AbstractEasyAdminControlle
 
     public function testAuthenticatedAdminCanAccessDashboard(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
 
         // 认证用户应该能访问Dashboard
         $crawler = $client->request('GET', '/admin');

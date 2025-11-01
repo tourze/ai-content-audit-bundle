@@ -69,8 +69,7 @@ final class ReportCrudControllerTest extends AbstractEasyAdminControllerTestCase
 
     public function testAuthenticatedAdminCanAccessDashboard(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
 
         // 认证用户应该能访问Dashboard
         $crawler = $client->request('GET', '/admin');
@@ -87,8 +86,7 @@ final class ReportCrudControllerTest extends AbstractEasyAdminControllerTestCase
      */
     public function testProcessReportAction(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->loginAsAdmin($client);
+        $client = self::createAuthenticatedClient();
 
         // 创建测试数据 - 生成内容
         $generatedContent = new GeneratedContent();
