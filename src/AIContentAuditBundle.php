@@ -9,8 +9,8 @@ use EasyCorp\Bundle\EasyAdminBundle\EasyAdminBundle;
 use Symfony\Bundle\SecurityBundle\SecurityBundle;
 use Symfony\Bundle\TwigBundle\TwigBundle;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
-use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 use Tourze\BundleDependency\BundleDependencyInterface;
+use Tourze\EasyAdminMenuBundle\EasyAdminMenuBundle;
 
 class AIContentAuditBundle extends Bundle implements BundleDependencyInterface
 {
@@ -21,12 +21,7 @@ class AIContentAuditBundle extends Bundle implements BundleDependencyInterface
             TwigBundle::class => ['all' => true],
             SecurityBundle::class => ['all' => true],
             EasyAdminBundle::class => ['all' => true],
+            EasyAdminMenuBundle::class => ['all' => true],
         ];
-    }
-
-    public function configureRoutes(RoutingConfigurator $routes): void
-    {
-        // 非 EasyAdmin 的注解路由由本包的 AttributeControllerLoader 自动加载
-        // 这里无需再导入 YAML 路由
     }
 }
