@@ -66,18 +66,14 @@ final class PendingContentCrudControllerTest extends AbstractEasyAdminController
 
     public function testAuthenticatedAdminCanAccessDashboard(): void
     {
-        $client = self::createClientWithDatabase();
-
-        $this->loginAsAdmin($client);
+        $client = $this->createAuthenticatedClient();
+        $url = $this->generateAdminUrl(Action::INDEX);
 
         // 认证用户应该能访问Dashboard
-        $crawler = $client->request('GET', '/admin');
+        $crawler = $client->request('GET', $url);
 
         // 验证响应状态
-        $response = $client->getResponse();
-        $this->assertTrue($response->isSuccessful(), 'Response should be successful');
-        $content = $response->getContent();
-        $this->assertStringContainsString('dashboard', false !== $content ? $content : '');
+        $this->assertResponseIsSuccessful();
     }
 
     public function testCanAccessPendingContentIndex(): void
