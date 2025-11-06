@@ -127,6 +127,8 @@ readonly class UserManagementService
      */
     public function getUserViolationRecords(mixed $userId): array
     {
-        return $this->violationRecordRepository->findByUser($userId);
+        /** @var array<int, ViolationRecord> $records */
+        $records = $this->violationRecordRepository->findByUser($userId);
+        return $records;
     }
 }

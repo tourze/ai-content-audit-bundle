@@ -229,7 +229,9 @@ final class PendingContentCrudController extends AbstractCrudController
     #[AdminAction(routePath: '{entityId}/audit', routeName: 'audit')]
     public function audit(Request $request): RedirectResponse
     {
-        $entityId = (int) ($request->attributes->get('entityId') ?? $request->query->get('entityId'));
+        $entityIdValue = $request->attributes->get('entityId') ?? $request->query->get('entityId');
+        assert(is_string($entityIdValue) || is_numeric($entityIdValue), 'Entity ID must be numeric');
+        $entityId = (int) $entityIdValue;
         if ($entityId <= 0) {
             throw new \EasyCorp\Bundle\EasyAdminBundle\Exception\EntityNotFoundException();
         }
@@ -253,7 +255,9 @@ final class PendingContentCrudController extends AbstractCrudController
     #[AdminAction(routePath: '{entityId}/detail-audit', routeName: 'detail_audit')]
     public function detailAudit(Request $request): RedirectResponse
     {
-        $entityId = (int) ($request->attributes->get('entityId') ?? $request->query->get('entityId'));
+        $entityIdValue = $request->attributes->get('entityId') ?? $request->query->get('entityId');
+        assert(is_string($entityIdValue) || is_numeric($entityIdValue), 'Entity ID must be numeric');
+        $entityId = (int) $entityIdValue;
         if ($entityId <= 0) {
             throw new \EasyCorp\Bundle\EasyAdminBundle\Exception\EntityNotFoundException();
         }

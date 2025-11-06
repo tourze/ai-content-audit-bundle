@@ -198,8 +198,11 @@ readonly class ContentAuditService
     private function evaluateRiskLevel(string $text): RiskLevel
     {
         // 获取各风险等级的关键词
+        /** @var array<int, RiskKeyword> $lowRiskKeywords */
         $lowRiskKeywords = $this->riskKeywordRepository->findByRiskLevel(RiskLevel::LOW_RISK);
+        /** @var array<int, RiskKeyword> $mediumRiskKeywords */
         $mediumRiskKeywords = $this->riskKeywordRepository->findByRiskLevel(RiskLevel::MEDIUM_RISK);
+        /** @var array<int, RiskKeyword> $highRiskKeywords */
         $highRiskKeywords = $this->riskKeywordRepository->findByRiskLevel(RiskLevel::HIGH_RISK);
 
         // 计算匹配的关键词数量

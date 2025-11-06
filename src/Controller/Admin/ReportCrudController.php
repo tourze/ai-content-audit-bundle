@@ -337,6 +337,7 @@ final class ReportCrudController extends AbstractCrudController
     private function applySortToQueryBuilder(QueryBuilder $queryBuilder, AdminContextInterface $context): void
     {
         $request = $context->getRequest();
+        /** @var array<string, mixed> $sortData */
         $sortData = $request->query->all('sort');
 
         if (0 === count($sortData)) {

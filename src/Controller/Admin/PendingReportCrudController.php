@@ -130,7 +130,9 @@ final class PendingReportCrudController extends AbstractCrudController
     )]
     public function process(Request $request): RedirectResponse
     {
-        $entityId = (int) ($request->attributes->get('entityId') ?? $request->query->get('entityId'));
+        $entityIdValue = $request->attributes->get('entityId') ?? $request->query->get('entityId');
+        assert(is_string($entityIdValue) || is_numeric($entityIdValue), 'Entity ID must be numeric');
+        $entityId = (int) $entityIdValue;
         if ($entityId <= 0) {
             throw new EntityNotFoundException();
         }
