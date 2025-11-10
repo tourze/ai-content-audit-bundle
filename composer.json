@@ -38,7 +38,7 @@
     "tourze/easy-admin-menu-bundle": "1.0.*",
     "tourze/enum-extra": "1.0.*",
     "tourze/symfony-routing-auto-loader-bundle": "1.0.*",
-    "tourze/user-service-contracts": "1.*"
+    "tourze/user-service-contracts": "1.1.*"
   },
   "require-dev": {
     "deptrac/deptrac": "^3.0",
