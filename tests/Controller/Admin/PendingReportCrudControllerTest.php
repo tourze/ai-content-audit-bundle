@@ -30,7 +30,7 @@ use Tourze\PHPUnitSymfonyWebTest\AbstractEasyAdminControllerTestCase;
 final class PendingReportCrudControllerTest extends AbstractEasyAdminControllerTestCase
 {
     /**
-     * @return AbstractCrudController<\AIContentAuditBundle\Entity\Report>
+     * @return AbstractCrudController<Report>
      */
     protected function getControllerService(): AbstractCrudController
     {
