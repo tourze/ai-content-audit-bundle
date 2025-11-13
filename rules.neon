@@ -1,7 +1,9 @@
 parameters:
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
     ignoreErrors:
-        # 忽略仓储测试中的 getRepository 调用 - 仓储测试需要通过 EntityManager 获取仓储
+        # 忽略Entity ID属性的onlyRead错误 - Doctrine自动生成主键ID
         -
-            message: '#Instead of getting repository from EntityManager, use constructor injection and service pattern to keep code clean#'
+            message: '#Property.*::\$id is never written, only read#'
             paths:
-                - tests/Integration/Repository/*RepositoryTest.php
+                - src/Entity/*.php
