@@ -6,9 +6,7 @@ namespace AIContentAuditBundle\Controller\Admin;
 
 use AIContentAuditBundle\Entity\ViolationRecord;
 use AIContentAuditBundle\Enum\ViolationType;
-use AsyncExportBundle\Entity\AsyncExportTask;
 use Doctrine\ORM\EntityManagerInterface;
-use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminAction;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminCrud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
@@ -24,8 +22,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\DateTimeFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
@@ -99,76 +95,11 @@ final class ViolationRecordCrudController extends AbstractCrudController
 
     public function configureActions(Actions $actions): Actions
     {
-        $exportAction = Action::new('exportViolationRecords', '导出违规记录', 'fas fa-download')
-            ->linkToCrudAction('exportViolationRecords')
-            ->setCssClass('btn btn-success')
-            ->createAsGlobalAction()
-        ;
-
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->add(Crud::PAGE_INDEX, $exportAction)
             ->disable(Action::NEW, Action::DELETE, Action::EDIT)
             ->setPermission(Action::DELETE, 'ROLE_SUPER_ADMIN')
         ;
-    }
-
-    /**
-     * 导出违规记录
-     */
-    #[AdminAction(
-        routeName: 'export',
-        routePath: 'export',
-    )]
-    public function exportViolationRecords(AdminContext $context, Request $request): Response
-    {
-        $user = $this->getUser();
-        if (null === $user) {
-            throw $this->createAccessDeniedException('用户未登录');
-        }
-
-        // 创建导出任务
-        $exportTask = new AsyncExportTask();
-        $exportTask->setUser($user);
-        $exportTask->setFile('violation_records_' . date('Y-m-d_H-i-s') . '.csv');
-        $exportTask->setEntityClass(ViolationRecord::class);
-        $exportTask->setDql('SELECT v FROM AIContentAuditBundle\Entity\ViolationRecord v ORDER BY v.violationTime DESC');
-        $exportTask->setColumns([
-            ['field' => 'id', 'label' => 'ID', 'type' => 'string'],
-            ['field' => 'user', 'label' => '违规用户', 'type' => 'string'],
-            ['field' => 'violationTime', 'label' => '违规时间', 'type' => 'datetime'],
-            ['field' => 'violationContent', 'label' => '违规内容', 'type' => 'string'],
-            ['field' => 'violationType', 'label' => '违规类型', 'type' => 'string'],
-            ['field' => 'processResult', 'label' => '处理结果', 'type' => 'string'],
-            ['field' => 'processTime', 'label' => '处理时间', 'type' => 'datetime'],
-            ['field' => 'processedBy', 'label' => '处理人员', 'type' => 'string'],
-        ]);
-        $exportTask->setJson([
-            'title' => '违规记录导出',
-            'description' => 'AI内容审核违规记录数据导出',
-        ]);
-        $exportTask->setRemark('违规记录导出任务');
-        // 设置一个测试的计数，模拟已完成的导出任务
-        $exportTask->setTotalCount(100);
-        $exportTask->setProcessCount(100);
-        $exportTask->setMemoryUsage(0);
-        $exportTask->setValid(true);
-
-        // 保存导出任务
-        $this->entityManager->persist($exportTask);
-        $this->entityManager->flush();
-
-        $this->addFlash('success', sprintf(
-            '导出任务已创建成功！任务ID: %s，文件名: %s。请前往导出任务页面查看进度。',
-            $exportTask->getId(),
-            $exportTask->getFile()
-        ));
-
-        // 重定向到当前页面
-        $referer = $context->getRequest()->headers->get('referer');
-        $redirectUrl = $referer ?? $this->generateUrl('admin');
-
-        return $this->redirect($redirectUrl);
     }
 
     /**
