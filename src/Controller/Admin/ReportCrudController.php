@@ -7,8 +7,6 @@ namespace AIContentAuditBundle\Controller\Admin;
 use AIContentAuditBundle\Entity\Report;
 use AIContentAuditBundle\Enum\ProcessStatus;
 use AIContentAuditBundle\Service\ReportService;
-use AsyncExportBundle\Entity\AsyncExportTask;
-use AsyncExportBundle\Trait\AsyncExportableTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminAction;
@@ -32,7 +30,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
@@ -45,7 +42,6 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted(attribute: 'ROLE_ADMIN')]
 final class ReportCrudController extends AbstractCrudController
 {
-    use AsyncExportableTrait;
 
     public function __construct(
         private readonly ReportService $reportService,
@@ -59,22 +55,6 @@ final class ReportCrudController extends AbstractCrudController
         return $this->entityManager;
     }
 
-    protected function createExportQueryBuilder(AdminContextInterface $context): QueryBuilder
-    {
-        $entityRepository = $this->entityManager->getRepository(self::getEntityFqcn());
-        $queryBuilder = $entityRepository->createQueryBuilder('entity');
-
-        // 添加关联查询以支持导出关联字段
-        $queryBuilder->leftJoin('entity.reportedContent', 'reportedContent')
-            ->addSelect('reportedContent')
-        ;
-
-        $this->applySearchConditions($queryBuilder, $context);
-        $this->applyFiltersToQueryBuilder($queryBuilder, $context);
-        $this->applySortToQueryBuilder($queryBuilder, $context);
-
-        return $queryBuilder;
-    }
 
     private function applySearchConditions(QueryBuilder $queryBuilder, AdminContextInterface $context): void
     {
@@ -451,18 +431,13 @@ final class ReportCrudController extends AbstractCrudController
             })
         ;
 
-        $actions = $actions
+        return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_INDEX, $processAction)
             ->add(Crud::PAGE_DETAIL, $processAction)
             ->disable(Action::NEW, Action::DELETE, Action::EDIT)
             ->setPermission(Action::DELETE, 'ROLE_SUPER_ADMIN')
         ;
-
-        // 使用 AsyncExportableTrait 的导出功能
-        $asyncExport = $this->configureAsyncExportActions();
-
-        return $actions->add(Crud::PAGE_INDEX, $asyncExport);
     }
 
     /**
@@ -623,83 +598,4 @@ final class ReportCrudController extends AbstractCrudController
         return $this->redirect($url);
     }
 
-    /**
-     * 触发异步导出
-     *
-     * 重写Trait方法以添加AdminAction属性，使其可被EasyAdmin路由识别
-     */
-    #[AdminAction(
-        routeName: 'ai_content_audit_report_async_export',
-        routePath: '/ai-content-audit/report/async-export',
-    )]
-    public function triggerAsyncExport(AdminContextInterface $context): Response
-    {
-        $user = $this->getUser();
-        if (null === $user) {
-            $this->addFlash('danger', '请先登录');
-
-            return $this->redirectToRoute('admin');
-        }
-
-        $this->performExport($user, $context);
-        $redirectUrl = $this->getRedirectUrl($context);
-
-        return $this->redirect($redirectUrl);
-    }
-
-    private function performExport(UserInterface $user, AdminContextInterface $context): void
-    {
-        try {
-            $task = $this->createAsyncExportTask($user, $context);
-            $this->processExportTaskSync($task, $context);
-            $this->saveExportTask($task);
-            $this->showExportSuccessMessage($task);
-        } catch (\Exception $e) {
-            $this->addFlash('danger', '创建导出任务失败：' . $e->getMessage());
-        }
-    }
-
-    private function saveExportTask(AsyncExportTask $task): void
-    {
-        $this->getEntityManager()->persist($task);
-        $this->getEntityManager()->flush();
-    }
-
-    private function showExportSuccessMessage(AsyncExportTask $task): void
-    {
-        $this->addFlash('success', sprintf(
-            '同步导出已完成！任务ID: %s，文件名: %s。请前往导出任务页面下载文件。',
-            $task->getId(),
-            $task->getFile()
-        ));
-    }
-
-    /**
-     * 重写搜索字段配置，用于AsyncExportableTrait
-     */
-    /**
-     * @return array<string>
-     */
-    private function getSearchableFields(): array
-    {
-        return ['reportReason', 'processResult', 'reporterUser', 'reportedContent'];
-    }
-
-    /**
-     * 重写导出字段配置
-     * @return array<string, string>
-     */
-    protected function getExportColumns(?AdminContext $context = null): array
-    {
-        return [
-            'id' => 'ID',
-            'reporterUser' => '举报用户',
-            'reportedContent.inputText' => '被举报内容',
-            'reportTime' => '举报时间',
-            'reportReason' => '举报理由',
-            'processStatus' => '处理状态',
-            'processTime' => '处理时间',
-            'processResult' => '处理结果',
-        ];
-    }
 }
