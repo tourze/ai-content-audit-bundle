@@ -15,14 +15,10 @@ use Tourze\DoctrineIndexedBundle\Attribute\IndexColumn;
 #[ORM\Table(name: 'ims_ai_audit_risk_keyword', options: ['comment' => '风险关键词库表'])]
 class RiskKeyword implements \Stringable
 {
-    /**
-     * @var int|null
-     * @phpstan-var positive-int|null
-     */
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(options: ['comment' => '主键ID'])]
-    private ?int $id;
+    private ?int $id = null;
 
     #[ORM\Column(length: 100, options: ['comment' => '风险关键词'])]
     #[Assert\NotBlank(message: '风险关键词不能为空')]

@@ -14,14 +14,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'ims_ai_audit_violation_record', options: ['comment' => '违规记录表'])]
 class ViolationRecord implements \Stringable
 {
-    /**
-     * @var int|null
-     * @phpstan-var positive-int|null
-     */
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(options: ['comment' => '主键ID'])]
-    private ?int $id;
+    private ?int $id = null;
 
     #[ORM\Column(type: Types::STRING, length: 255, nullable: false, options: ['comment' => '违规用户ID'])]
     #[Assert\NotBlank(message: '违规用户ID不能为空')]
