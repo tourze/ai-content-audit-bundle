@@ -9,9 +9,9 @@ use AIContentAuditBundle\Enum\AuditResult;
 use AIContentAuditBundle\Enum\RiskLevel;
 use AIContentAuditBundle\Exception\InvalidAuditResultException;
 use AIContentAuditBundle\Service\ContentAuditService;
-use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminAction;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminCrud;
+use EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -25,7 +25,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\DateTimeFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -116,9 +115,7 @@ final class GeneratedContentCrudController extends AbstractCrudController
     public function configureActions(Actions $actions): Actions
     {
         $audit = Action::new('audit', '审核', 'fa fa-check')
-            ->linkToRoute('ai_content_audit_generated_content_audit', function (GeneratedContent $entity): array {
-                return ['id' => $entity->getId()];
-            })
+            ->linkToCrudAction('audit')
             ->displayIf(static function (GeneratedContent $entity) {
                 return $entity->needsManualAudit();
             })
@@ -134,19 +131,21 @@ final class GeneratedContentCrudController extends AbstractCrudController
     }
 
     #[AdminAction(
-        routeName: 'ai_content_audit_generated_content_audit',
-        routePath: '{id}/audit',
+        routePath: '{entityId}/audit',
+        routeName: 'audit',
     )]
-    public function audit(Request $request, EntityManagerInterface $entityManager, int $id): Response
+    public function audit(AdminContext $context): Response
     {
-        $content = $this->contentAuditService->findGeneratedContent($id);
-
-        if (null === $content) {
+        $entityInstance = $context->getEntity()->getInstance();
+        if (!$entityInstance instanceof GeneratedContent) {
             throw new NotFoundHttpException('内容不存在');
         }
 
+        $content = $entityInstance;
+        $request = $context->getRequest();
+
         // 处理表单提交（POST 到当前页面）
-        if ($request->isMethod('POST')) {
+        if (null !== $request && $request->isMethod('POST')) {
             $auditResultValue = $request->request->get('auditResult');
             if (null === $auditResultValue || '' === $auditResultValue) {
                 throw new InvalidAuditResultException('审核结果不能为空');
@@ -161,7 +160,9 @@ final class GeneratedContentCrudController extends AbstractCrudController
             $this->contentAuditService->manualAudit($content, $auditResult, $operator);
 
             // 成功后返回列表
-            return $this->redirect($this->generateUrl('admin', [
+            $referer = $request->headers->get('referer');
+
+            return $this->redirect(is_string($referer) ? $referer : $this->generateUrl('admin', [
                 'crudAction' => 'index',
                 'crudControllerFqcn' => self::class,
             ]));
@@ -176,43 +177,6 @@ final class GeneratedContentCrudController extends AbstractCrudController
                 'crudControllerFqcn' => self::class,
             ]),
         ]);
-    }
-
-    /**
-     * 提交内容审核
-     */
-    public function submitAudit(Request $request, int $contentId): Response
-    {
-        $content = $this->contentAuditService->findGeneratedContent($contentId);
-
-        if (null === $content) {
-            throw new NotFoundHttpException('内容不存在');
-        }
-
-        // 获取审核结果
-        $auditResultValue = $request->get('auditResult');
-        if (null === $auditResultValue || ('' === $auditResultValue)) {
-            throw new InvalidAuditResultException('审核结果不能为空');
-        }
-
-        // 确保转换为字符串类型
-        if (!is_string($auditResultValue) && !is_int($auditResultValue)) {
-            throw new InvalidAuditResultException('审核结果格式无效');
-        }
-
-        $auditResult = AuditResult::from($auditResultValue);
-        $operator = $this->getUser()?->getUserIdentifier() ?? 'system';
-
-        // 执行人工审核
-        $this->contentAuditService->manualAudit($content, $auditResult, $operator);
-
-        $referer = $request->headers->get('referer');
-        $redirectUrl = is_string($referer) ? $referer : $this->generateUrl('admin', [
-            'crudAction' => 'index',
-            'crudControllerFqcn' => self::class,
-        ]);
-
-        return $this->redirect($redirectUrl);
     }
 
     /**
